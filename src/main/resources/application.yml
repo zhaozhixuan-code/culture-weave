@@ -3,6 +3,10 @@ spring:
     name: culture-weave-backend
   profiles:
     active: local
+  servlet:
+    multipart:
+      max-file-size: 10MB  # 单个文件最大大小
+      max-request-size: 10MB  # 单次请求最大大小
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${culture-weave.spring.datasource.host}:${culture-weave.spring.datasource.port}/culture_weave?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&useSSL=false
@@ -46,3 +50,5 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
+
+

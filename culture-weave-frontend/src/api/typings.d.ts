@@ -1,4 +1,8 @@
 declare namespace API {
+  type addResourceParams = {
+    resourcesAddRequest: ResourcesAddRequest
+  }
+
   type BaseResponseBoolean = {
     code?: number
     data?: boolean
@@ -17,9 +21,33 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponsePageResources = {
+    code?: number
+    data?: PageResources
+    message?: string
+  }
+
+  type BaseResponsePageResourcesVO = {
+    code?: number
+    data?: PageResourcesVO
+    message?: string
+  }
+
   type BaseResponsePageUserVO = {
     code?: number
     data?: PageUserVO
+    message?: string
+  }
+
+  type BaseResponseResourcesCategory = {
+    code?: number
+    data?: ResourcesCategory
+    message?: string
+  }
+
+  type BaseResponseResourcesVO = {
+    code?: number
+    data?: ResourcesVO
     message?: string
   }
 
@@ -37,6 +65,10 @@ declare namespace API {
 
   type DeleteRequest = {
     id?: number
+  }
+
+  type getPictureVOByIdParams = {
+    id: number
   }
 
   type getUserByIdParams = {
@@ -64,6 +96,34 @@ declare namespace API {
     asc?: boolean
   }
 
+  type PageResources = {
+    records?: Resources[]
+    total?: number
+    size?: number
+    current?: number
+    orders?: OrderItem[]
+    optimizeCountSql?: PageResources
+    searchCount?: PageResources
+    optimizeJoinOfCountSql?: boolean
+    maxLimit?: number
+    countId?: string
+    pages?: number
+  }
+
+  type PageResourcesVO = {
+    records?: ResourcesVO[]
+    total?: number
+    size?: number
+    current?: number
+    orders?: OrderItem[]
+    optimizeCountSql?: PageResourcesVO
+    searchCount?: PageResourcesVO
+    optimizeJoinOfCountSql?: boolean
+    maxLimit?: number
+    countId?: string
+    pages?: number
+  }
+
   type PageUserVO = {
     records?: UserVO[]
     total?: number
@@ -76,6 +136,79 @@ declare namespace API {
     maxLimit?: number
     countId?: string
     pages?: number
+  }
+
+  type Resources = {
+    id?: number
+    name?: string
+    introduction?: string
+    category?: string
+    tags?: string
+    region?: string
+    resourceImgUrl?: string
+    price?: number
+    userId?: number
+    userName?: string
+    editTime?: string
+    createTime?: string
+    updateTime?: string
+    isDelete?: number
+  }
+
+  type ResourcesAddRequest = {
+    id?: number
+    name?: string
+    introduction?: string
+    category?: string
+    tags?: string[]
+    region?: string
+    userName?: string
+    price?: number
+  }
+
+  type ResourcesCategory = {
+    categoryList?: string[]
+    regionList?: string[]
+  }
+
+  type ResourcesQueryRequest = {
+    current?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+    id?: number
+    searchText?: string
+    name?: string
+    introduction?: string
+    category?: string
+    tags?: string[]
+    region?: string
+    userName?: string
+  }
+
+  type ResourcesUpdateRequest = {
+    id?: number
+    name?: string
+    introduction?: string
+    category?: string
+    tags?: string[]
+    region?: string
+    userName?: string
+    price?: number
+  }
+
+  type ResourcesVO = {
+    id?: number
+    name?: string
+    introduction?: string
+    category?: string
+    tags?: string[]
+    region?: string
+    resourceImgUrl?: string
+    price?: number
+    userId?: number
+    userVO?: UserVO
+    userName?: string
   }
 
   type User = {
