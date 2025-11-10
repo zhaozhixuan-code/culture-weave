@@ -1,5 +1,5 @@
 <template>
-  <div id="userManagePage">
+  <div id="userManagePage" class="page-container">
     <!-- 搜索框 --->
     <a-form layout="inline" :model="searchParams" @finish="doSearch">
       <a-form-item label="账号">
@@ -158,3 +158,11 @@ onMounted(() => {
   fetchData()
 })
 </script>
+
+<style scoped>
+#userManagePage {
+  padding: 16px 8%;
+  max-width: 1800px;
+  margin: 0 auto;
+}
+</style>

@@ -53,10 +53,10 @@ public interface ResourcesService extends IService<Resources> {
     /**
      * 获取资源信息 （用户）
      *
-     * @param id 照片id
-     * @return 照片信息
+     * @param id 资源id
+     * @return 资源信息
      */
-    ResourcesVO getResourcesVOById(Long id, HttpServletRequest request);
+    ResourcesVO getResourcesVOById(Long id);
 
 
     /**
@@ -70,12 +70,12 @@ public interface ResourcesService extends IService<Resources> {
 
     /**
      * 获取分页资源信息
+     *
      * @param current
      * @param size
      * @param resourcesQueryRequest
-     * @param request
      * @return
      */
-    Page<ResourcesVO> getResourcesVOPage(long current, long size, ResourcesQueryRequest resourcesQueryRequest, User request);
+    Page<ResourcesVO> getResourcesVOPage(long current, long size, ResourcesQueryRequest resourcesQueryRequest);
 
 }

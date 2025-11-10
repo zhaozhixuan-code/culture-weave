@@ -27,9 +27,16 @@ myAxios.interceptors.response.use(
     // 未登录
     if (data.code === 40100) {
       // 不是获取用户信息的请求，并且用户目前不是已经在用户登录页面，则跳转到登录页面
+      // 排除资源库相关的 API，允许未登录用户访问资源库
+      const responseURL = response.request.responseURL || ''
+      const isResourceAPI = responseURL.includes('/resource/')
+      const isUserLoginAPI = responseURL.includes('user/get/login')
+      const isOnLoginPage = window.location.pathname.includes('/user/login')
+      
       if (
-        !response.request.responseURL.includes('user/get/login') &&
-        !window.location.pathname.includes('/user/login')
+        !isUserLoginAPI &&
+        !isOnLoginPage &&
+        !isResourceAPI
       ) {
         message.warning('请先登录')
         window.location.href = `/user/login?redirect=${window.location.href}`

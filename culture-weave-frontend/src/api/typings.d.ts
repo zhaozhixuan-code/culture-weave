@@ -1,8 +1,4 @@
 declare namespace API {
-  type addResourceParams = {
-    resourcesAddRequest: ResourcesAddRequest
-  }
-
   type BaseResponseBoolean = {
     code?: number
     data?: boolean
@@ -67,7 +63,7 @@ declare namespace API {
     id?: number
   }
 
-  type getPictureVOByIdParams = {
+  type getResourcesVOByIdParams = {
     id: number
   }
 

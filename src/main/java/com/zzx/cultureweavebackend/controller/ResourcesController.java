@@ -20,6 +20,8 @@ import com.zzx.cultureweavebackend.service.ResourcesService;
 import com.zzx.cultureweavebackend.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -47,10 +49,11 @@ public class ResourcesController {
      * @param request
      * @return
      */
-    @PostMapping("/add")
-    public BaseResponse<ResourcesVO> addResource(@RequestPart("file") MultipartFile image,
-                                                 ResourcesAddRequest resourcesAddRequest,
-                                                 HttpServletRequest request) {
+    @PostMapping(value = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public BaseResponse<ResourcesVO> addResource(
+            @RequestPart("file") MultipartFile image,
+            @RequestPart("resourcesAddRequest") @Valid ResourcesAddRequest resourcesAddRequest,
+            HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR);
         ResourcesVO resourcesVO = resourcesService.addResources(resourcesAddRequest, image, loginUser);
@@ -88,13 +91,13 @@ public class ResourcesController {
     /**
      * 获取资源信息 （用户）
      *
-     * @param id 照片id
-     * @return 照片信息
+     * @param id 资源id
+     * @return 资源信息
      */
     @GetMapping("/get/vo")
-    public BaseResponse<ResourcesVO> getPictureVOById(Long id, HttpServletRequest request) {
+    public BaseResponse<ResourcesVO> getResourcesVOById(Long id) {
         ThrowUtils.throwIf(id == null, ErrorCode.PARAMS_ERROR);
-        ResourcesVO pictureVO = resourcesService.getResourcesVOById(id, request);
+        ResourcesVO pictureVO = resourcesService.getResourcesVOById(id);
         return ResultUtils.success(pictureVO);
     }
 
@@ -107,30 +110,29 @@ public class ResourcesController {
      */
     @PostMapping("/list/page")
     @AuthCheck(value = UserRoleEnum.ADMIN)
-    public BaseResponse<Page<Resources>> listPictureByPage(@RequestBody ResourcesQueryRequest resourcesQueryRequest) {
+    public BaseResponse<Page<Resources>> listResourcesByPage(@RequestBody ResourcesQueryRequest resourcesQueryRequest) {
         ThrowUtils.throwIf(resourcesQueryRequest == null, ErrorCode.PARAMS_ERROR);
         long current = resourcesQueryRequest.getCurrent();
         long size = resourcesQueryRequest.getPageSize();
+        // 补充查询条件：根据创建时间倒序排序
+        resourcesQueryRequest.setSortField("createTime");
         Page<Resources> pictureList = resourcesService.page(new Page<>(current, size), resourcesService.getQueryWrapper(resourcesQueryRequest));
         return ResultUtils.success(pictureList);
     }
 
     /**
-     * 获取照片列表
+     * 获取资源列表
      *
      * @param resourcesQueryRequest 非遗资源查询参数
      * @return 照片列表
      */
     @PostMapping("/list/page/vo")
-    public BaseResponse<Page<ResourcesVO>> listPictureVOByPage(@RequestBody ResourcesQueryRequest resourcesQueryRequest,
-                                                               HttpServletRequest request) {
+    public BaseResponse<Page<ResourcesVO>> listResourcesVOByPage(@RequestBody ResourcesQueryRequest resourcesQueryRequest) {
         ThrowUtils.throwIf(resourcesQueryRequest == null, ErrorCode.PARAMS_ERROR);
         long current = resourcesQueryRequest.getCurrent();
         long size = resourcesQueryRequest.getPageSize();
-        User loginUser = userService.getLoginUser(request);
-
         // 分页查询
-        Page<ResourcesVO> pictureVOList = resourcesService.getResourcesVOPage(current, size, resourcesQueryRequest, loginUser);
+        Page<ResourcesVO> pictureVOList = resourcesService.getResourcesVOPage(current, size, resourcesQueryRequest);
         return ResultUtils.success(pictureVOList);
     }
 

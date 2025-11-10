@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zzx.cultureweavebackend.constants.FileConstant;
 import com.zzx.cultureweavebackend.exception.BusinessException;
 import com.zzx.cultureweavebackend.exception.ErrorCode;
 import com.zzx.cultureweavebackend.exception.ThrowUtils;
@@ -74,6 +75,8 @@ public class ResourcesServiceImpl extends ServiceImpl<ResourcesMapper, Resources
         }
         // 上传图片
         String imagePath = imageUtil.saveImage(image, FileUploadPathEnum.RESOURCE);
+        // 获取图片访问地址
+        String imageUrl = FileConstant.URL + imagePath;
         // 存入数据库
         Resources resources = new Resources();
         resources.setName(resourcesAddRequest.getName());
@@ -82,7 +85,7 @@ public class ResourcesServiceImpl extends ServiceImpl<ResourcesMapper, Resources
         List<String> tags = resourcesAddRequest.getTags();
         resources.setTags(JSONUtil.toJsonStr(tags));
         resources.setRegion(resourcesAddRequest.getRegion());
-        resources.setResourceImgUrl(imagePath);
+        resources.setResourceImgUrl(imageUrl);
         resources.setUserId(loginUser.getId());
         resources.setUserName(loginUser.getUserName());
         resources.setPrice(resourcesAddRequest.getPrice());
@@ -153,11 +156,11 @@ public class ResourcesServiceImpl extends ServiceImpl<ResourcesMapper, Resources
     /**
      * 获取资源信息 （用户）
      *
-     * @param id 照片id
-     * @return 照片信息
+     * @param id 资源id
+     * @return 资源信息
      */
     @Override
-    public ResourcesVO getResourcesVOById(Long id, HttpServletRequest request) {
+    public ResourcesVO getResourcesVOById(Long id) {
         // 校验参数
         ThrowUtils.throwIf(id == null, ErrorCode.PARAMS_ERROR);
         // 获取资源信息
@@ -175,13 +178,13 @@ public class ResourcesServiceImpl extends ServiceImpl<ResourcesMapper, Resources
      * @param current
      * @param size
      * @param resourcesQueryRequest
-     * @param request
      * @return
      */
     @Override
-    public Page<ResourcesVO> getResourcesVOPage(long current, long size, ResourcesQueryRequest resourcesQueryRequest,
-                                                User request) {
+    public Page<ResourcesVO> getResourcesVOPage(long current, long size, ResourcesQueryRequest resourcesQueryRequest) {
         // 获取分页资源信息
+        // 根据创建时间排序查询
+        resourcesQueryRequest.setSortField("createTime");
         Page<Resources> resourcesPage = this.page(new Page<>(current, size), this.getQueryWrapper(resourcesQueryRequest));
         List<Resources> resourcesList = resourcesPage.getRecords();
         Page<ResourcesVO> resourcesVOPage = new Page<>(resourcesPage.getCurrent(), resourcesPage.getSize(), resourcesPage.getTotal());
@@ -226,22 +229,36 @@ public class ResourcesServiceImpl extends ServiceImpl<ResourcesMapper, Resources
             return queryWrapper;
         }
         Long id = resourcesQueryRequest.getId();
+        String searchText = resourcesQueryRequest.getSearchText();
         String name = resourcesQueryRequest.getName();
         String introduction = resourcesQueryRequest.getIntroduction();
         String category = resourcesQueryRequest.getCategory();
         List<String> tags = resourcesQueryRequest.getTags();
         String region = resourcesQueryRequest.getRegion();
         String userName = resourcesQueryRequest.getUserName();
-        int current = resourcesQueryRequest.getCurrent();
-        int pageSize = resourcesQueryRequest.getPageSize();
-        String sortField = resourcesQueryRequest.getSortField();
-        String sortOrder = resourcesQueryRequest.getSortOrder();
+        // 从多字段中搜索
+        if (StrUtil.isNotBlank(searchText)) {
+            // 需要拼接查询条件
+            queryWrapper.and(qw -> qw.like("name", searchText)
+                    .or()
+                    .like("introduction", searchText)
+                    .or()
+                    .like("userName", searchText)
+            );
+        }
         queryWrapper.eq(id != null, "id", id);
         queryWrapper.like(StrUtil.isNotBlank(name), "name", name);
         queryWrapper.like(StrUtil.isNotBlank(introduction), "introduction", introduction);
         queryWrapper.eq(StrUtil.isNotBlank(category), "category", category);
-
-        return null;
+        // JSON 数组查询
+        if (CollUtil.isNotEmpty(tags)) {
+            for (String tag : tags) {
+                queryWrapper.like("tags", "\"" + tag + "\"");
+            }
+        }
+        queryWrapper.like(StrUtil.isNotBlank(region), "region", region);
+        queryWrapper.like(StrUtil.isNotBlank(userName), "userName", userName);
+        return queryWrapper;
     }
 
 

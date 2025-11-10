@@ -4,22 +4,38 @@ import request from '@/request'
 
 /** 此处后端没有提供注释 POST /resource/add */
 export async function addResource(
-  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.addResourceParams,
-  body: {},
+  body: {
+    resourcesAddRequest: API.ResourcesAddRequest
+  },
+  file?: File,
   options?: { [key: string]: any }
 ) {
+  const formData = new FormData()
+
+  if (file) {
+    formData.append('file', file)
+  }
+
+  Object.keys(body).forEach((ele) => {
+    const item = (body as any)[ele]
+
+    if (item !== undefined && item !== null) {
+      if (typeof item === 'object' && !(item instanceof File)) {
+        if (item instanceof Array) {
+          item.forEach((f) => formData.append(ele, f || ''))
+        } else {
+          formData.append(ele, new Blob([JSON.stringify(item)], { type: 'application/json' }))
+        }
+      } else {
+        formData.append(ele, item)
+      }
+    }
+  })
+
   return request<API.BaseResponseResourcesVO>('/resource/add', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    params: {
-      ...params,
-      resourcesAddRequest: undefined,
-      ...params['resourcesAddRequest'],
-    },
-    data: body,
+    data: formData,
+    requestType: 'form',
     ...(options || {}),
   })
 }
@@ -45,9 +61,9 @@ export async function deleteResource(body: API.DeleteRequest, options?: { [key: 
 }
 
 /** 此处后端没有提供注释 GET /resource/get/vo */
-export async function getPictureVoById(
+export async function getResourcesVoById(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
-  params: API.getPictureVOByIdParams,
+  params: API.getResourcesVOByIdParams,
   options?: { [key: string]: any }
 ) {
   return request<API.BaseResponseResourcesVO>('/resource/get/vo', {
@@ -60,7 +76,7 @@ export async function getPictureVoById(
 }
 
 /** 此处后端没有提供注释 POST /resource/list/page */
-export async function listPictureByPage(
+export async function listResourcesByPage(
   body: API.ResourcesQueryRequest,
   options?: { [key: string]: any }
 ) {
@@ -75,7 +91,7 @@ export async function listPictureByPage(
 }
 
 /** 此处后端没有提供注释 POST /resource/list/page/vo */
-export async function listPictureVoByPage(
+export async function listResourcesVoByPage(
   body: API.ResourcesQueryRequest,
   options?: { [key: string]: any }
 ) {

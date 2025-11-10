@@ -7,6 +7,9 @@ import java.io.File;
  */
 public class FileConstant {
 
+
+    public static final String URL = "http://localhost:8123";
+
     /**
      * 图片上传根目录：项目根目录下的 image 文件夹
      * File.separator 自动适配 Windows(\) 和 Linux/Mac(/)
