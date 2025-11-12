@@ -4,9 +4,11 @@
 // API 唯一标识：
 import * as userController from './userController'
 import * as resourcesController from './resourcesController'
+import * as postController from './postController'
 import * as healthController from './healthController'
 export default {
   userController,
   resourcesController,
+  postController,
   healthController,
 }

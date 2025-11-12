@@ -1,4 +1,4 @@
-package com.zzx.cultureweavebackend.model.dto.resources;
+package com.zzx.cultureweavebackend.model.dto.post;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -8,13 +8,10 @@ import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.List;
-
 
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class ResourcesQueryRequest extends PageRequest implements Serializable {
-
+public class PostQueryRequest extends PageRequest implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
@@ -31,33 +28,18 @@ public class ResourcesQueryRequest extends PageRequest implements Serializable {
     private String searchText;
 
     /**
-     * 资源名称
+     * 图片地址
      */
-    private String name;
+    private String pictureUrl;
 
     /**
-     * 简介
+     * 标题
      */
-    private String introduction;
+    private String title;
 
     /**
-     * 分类
+     * 内容
      */
-    private String category;
-
-    /**
-     * 标签
-     */
-    private List<String> tags;
-
-    /**
-     * 地区
-     */
-    private String region;
-
-    /**
-     * 创建用户姓名
-     */
-    private String userName;
+    private String content;
 
 }

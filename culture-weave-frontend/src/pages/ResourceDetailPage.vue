@@ -21,11 +21,6 @@
                         <PictureOutlined style="font-size:36px" />
                         <span>暂无封面</span>
                     </div>
-
-                    <div class="actions">
-                        <a-button type="primary" :disabled="!canDownload" @click="onDownload">下载/查看</a-button>
-                        <a-button v-if="resource.price && resource.price > 0" @click="onPurchase">购买授权</a-button>
-                    </div>
                 </div>
 
                 <div class="right">
@@ -65,7 +60,7 @@
                             @click="onDownload">立即下载</a-button>
                         <a-button v-if="resource.price && resource.price > 0" size="large"
                             @click="onPurchase">购买授权</a-button>
-                        <a-button v-if="isOwner" danger @click="onDelete">删除资源</a-button>
+                      <a-button v-if="isOwner" danger @click="openDelete">删除资源</a-button>
                         <a-button v-if="isOwner" @click="onEdit">编辑</a-button>
                     </div>
                 </div>
@@ -113,6 +108,20 @@
                 </section>
             </div>
         </a-card>
+      <a-modal v-model:open="deleteVisible" :confirm-loading="deleting" :footer="null" centered class="danger-modal"
+               :mask-closable="!deleting">
+        <div class="danger-modal-body">
+          <div class="danger-icon">!</div>
+          <h3 class="danger-title">确认删除该资源？</h3>
+          <p class="danger-desc">删除后不可恢复，请谨慎操作。</p>
+          <div class="danger-actions">
+            <a-button size="large" @click="closeDelete" :disabled="deleting">取消</a-button>
+            <a-button type="primary" size="large" danger @click="confirmDelete" :loading="deleting">
+              确认删除
+            </a-button>
+          </div>
+        </div>
+      </a-modal>
     </div>
 </template>
 
@@ -147,6 +156,8 @@ const isOwner = computed(() => {
     return resource.value.userId === currentUserId.value
 })
 const canDownload = ref(true) // 简化权限判断，可根据实际业务逻辑调整
+const deleteVisible = ref(false)
+const deleting = ref(false)
 
 function normalizeTags(v: unknown): string[] {
     if (Array.isArray(v)) return v.map((i: any) => String(i).trim()).filter(Boolean)
@@ -272,19 +283,25 @@ function onPurchase() {
     alert('购买流程尚未实现，请接入支付/授权流程')
 }
 
-async function onDelete() {
+function openDelete() {
+  if (!resource.value?.id) return
+  deleteVisible.value = true
+}
+
+function closeDelete() {
+  if (deleting.value) return
+  deleteVisible.value = false
+}
+
+async function confirmDelete() {
     if (!resource.value?.id) return
-
-    const confirmed = confirm('确认删除该资源？此操作不可恢复')
-    if (!confirmed) return
-
+  deleting.value = true
     try {
         const res = await deleteResource({ id: resource.value.id })
-        // res 是 axios response，res.data 是 BaseResponseBoolean
         const responseData = (res as any)?.data as API.BaseResponseBoolean
-
         if (responseData?.code === 0) {
             message.success('删除成功')
+          deleteVisible.value = false
             router.push('/resources')
         } else {
             message.error(responseData?.message || '删除失败')
@@ -292,6 +309,8 @@ async function onDelete() {
     } catch (e: any) {
         console.error('删除资源失败', e)
         message.error('删除失败，请稍后重试')
+    } finally {
+      deleting.value = false
     }
 }
 
@@ -367,6 +386,49 @@ onMounted(() => {
 .actions {
     display: flex;
     gap: 12px;
+}
+
+.danger-modal :deep(.ant-modal-content) {
+  border-radius: 18px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.danger-modal-body {
+  padding: 24px 24px 20px;
+  text-align: center;
+}
+
+.danger-icon {
+  width: 52px;
+  height: 52px;
+  line-height: 52px;
+  border-radius: 50%;
+  margin: 0 auto 10px;
+  background: linear-gradient(135deg, #ffeded, #ffe5e5);
+  color: #ff4d4f;
+  font-weight: 800;
+  font-size: 22px;
+  box-shadow: 0 8px 20px rgba(255, 107, 107, 0.25) inset;
+}
+
+.danger-title {
+  margin: 0;
+  font-size: 18px;
+  color: #1a2332;
+}
+
+.danger-desc {
+  margin: 6px 0 0 0;
+  font-size: 13px;
+  color: #6a7a99;
+}
+
+.danger-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
 }
 
 .right {

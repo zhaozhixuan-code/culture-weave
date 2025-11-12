@@ -17,6 +17,18 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponsePagePost = {
+    code?: number
+    data?: PagePost
+    message?: string
+  }
+
+  type BaseResponsePagePostVO = {
+    code?: number
+    data?: PagePostVO
+    message?: string
+  }
+
   type BaseResponsePageResources = {
     code?: number
     data?: PageResources
@@ -32,6 +44,12 @@ declare namespace API {
   type BaseResponsePageUserVO = {
     code?: number
     data?: PageUserVO
+    message?: string
+  }
+
+  type BaseResponsePostVO = {
+    code?: number
+    data?: PostVO
     message?: string
   }
 
@@ -63,6 +81,10 @@ declare namespace API {
     id?: number
   }
 
+  type getResourcesVOById1Params = {
+    id: number
+  }
+
   type getResourcesVOByIdParams = {
     id: number
   }
@@ -90,6 +112,34 @@ declare namespace API {
   type OrderItem = {
     column?: string
     asc?: boolean
+  }
+
+  type PagePost = {
+    records?: Post[]
+    total?: number
+    size?: number
+    current?: number
+    orders?: OrderItem[]
+    optimizeCountSql?: PagePost
+    searchCount?: PagePost
+    optimizeJoinOfCountSql?: boolean
+    maxLimit?: number
+    countId?: string
+    pages?: number
+  }
+
+  type PagePostVO = {
+    records?: PostVO[]
+    total?: number
+    size?: number
+    current?: number
+    orders?: OrderItem[]
+    optimizeCountSql?: PagePostVO
+    searchCount?: PagePostVO
+    optimizeJoinOfCountSql?: boolean
+    maxLimit?: number
+    countId?: string
+    pages?: number
   }
 
   type PageResources = {
@@ -132,6 +182,61 @@ declare namespace API {
     maxLimit?: number
     countId?: string
     pages?: number
+  }
+
+  type Post = {
+    id?: number
+    pictureUrl?: string
+    title?: string
+    content?: string
+    userId?: number
+    authorization?: number
+    statement?: number
+    editTime?: string
+    createTime?: string
+    updateTime?: string
+    isDelete?: number
+  }
+
+  type PostAddRequest = {
+    id?: number
+    title?: string
+    content?: string
+    authorization?: number
+    statement?: number
+  }
+
+  type PostQueryRequest = {
+    current?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+    id?: number
+    searchText?: string
+    pictureUrl?: string
+    title?: string
+    content?: string
+  }
+
+  type PostUpdateRequest = {
+    id?: number
+    title?: string
+    content?: string
+    imageUrl?: string
+    authorization?: number
+    statement?: number
+  }
+
+  type PostVO = {
+    id?: number
+    pictureUrl?: string
+    title?: string
+    content?: string
+    userId?: number
+    authorization?: number
+    statement?: number
+    createTime?: string
+    userVO?: UserVO
   }
 
   type Resources = {

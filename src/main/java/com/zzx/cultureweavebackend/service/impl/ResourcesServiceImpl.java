@@ -258,6 +258,7 @@ public class ResourcesServiceImpl extends ServiceImpl<ResourcesMapper, Resources
         }
         queryWrapper.like(StrUtil.isNotBlank(region), "region", region);
         queryWrapper.like(StrUtil.isNotBlank(userName), "userName", userName);
+        queryWrapper.orderByDesc("createTime");
         return queryWrapper;
     }
 

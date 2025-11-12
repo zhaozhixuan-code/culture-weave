@@ -72,8 +72,8 @@ const originItems = [
   {
     key: '/creativeCenter',
     icon: () => h(EditOutlined),
-    label: '创作中心',
-    title: '创作中心',
+    label: '社区',
+    title: '社区',
   },
 
   {

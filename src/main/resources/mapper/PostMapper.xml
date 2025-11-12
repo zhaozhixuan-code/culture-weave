@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zzx.cultureweavebackend.mapper.PostMapper">
+
+    <resultMap id="BaseResultMap" type="com.zzx.cultureweavebackend.model.po.Post">
+        <id property="id" column="id"/>
+        <result property="pictureUrl" column="pictureUrl"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="userId" column="userId"/>
+        <result property="authorization" column="authorization"/>
+        <result property="statement" column="statement"/>
+        <result property="editTime" column="editTime"/>
+        <result property="createTime" column="createTime"/>
+        <result property="updateTime" column="updateTime"/>
+        <result property="isDelete" column="isDelete"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,pictureUrl,title,content,userId,authorization,
+        statement,editTime,createTime,updateTime,isDelete
+    </sql>
+</mapper>

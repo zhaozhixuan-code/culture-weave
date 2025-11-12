@@ -132,8 +132,8 @@ public class ResourcesController {
         long current = resourcesQueryRequest.getCurrent();
         long size = resourcesQueryRequest.getPageSize();
         // 分页查询
-        Page<ResourcesVO> pictureVOList = resourcesService.getResourcesVOPage(current, size, resourcesQueryRequest);
-        return ResultUtils.success(pictureVOList);
+        Page<ResourcesVO> resourcesVOList = resourcesService.getResourcesVOPage(current, size, resourcesQueryRequest);
+        return ResultUtils.success(resourcesVOList);
     }
 
 

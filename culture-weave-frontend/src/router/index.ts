@@ -39,7 +39,11 @@ const router = createRouter({
       name: '添加资源',
       component: () => import('../pages/AddResourcesPage.vue')
     },
-    
+    {
+      path: '/resources/edit/:id',
+      name: '编辑资源',
+      component: () => import('../pages/AddResourcesPage.vue')
+    },
     {
       path: '/resources/:id',
       name: '资源详情',
@@ -47,8 +51,13 @@ const router = createRouter({
     },
     {
       path: '/creativeCenter',
-      name: '创作中心',
+      name: '社区',
       component: () => import('../pages/CreativeCenterPage.vue')
+    },
+    {
+      path: '/creativeCenter/create',
+      name: '发布灵感',
+      component: () => import('../pages/CreatePostPage.vue')
     },
   ]
 })
