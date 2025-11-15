@@ -12,6 +12,13 @@ spring:
     url: jdbc:mysql://${culture-weave.spring.datasource.host}:${culture-weave.spring.datasource.port}/culture_weave?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&useSSL=false
     username: ${culture-weave.spring.datasource.username}
     password: ${culture-weave.spring.datasource.password}
+  # ai
+  ai:
+    dashscope:
+      api-key: ${culture-weave.spring.ai.dashscope.api-key}
+      chat:
+        options:
+          model: ${culture-weave.spring.ai.dashscope.chat-model}
 
 server:
   port: 8123

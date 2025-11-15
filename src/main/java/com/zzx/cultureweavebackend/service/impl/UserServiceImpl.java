@@ -20,6 +20,7 @@ import com.zzx.cultureweavebackend.model.vo.LoginUserVO;
 import com.zzx.cultureweavebackend.model.vo.UserVO;
 import com.zzx.cultureweavebackend.service.UserService;
 import com.zzx.cultureweavebackend.mapper.UserMapper;
+import com.zzx.cultureweavebackend.utils.BaseContext;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -136,6 +137,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
         // 3. 记录用户的登录态
         request.getSession().setAttribute(USER_LOGIN_STATE, user);
+        BaseContext.setCurrentId(user.getId());
         return this.getLoginUserVO(user);
     }
 
