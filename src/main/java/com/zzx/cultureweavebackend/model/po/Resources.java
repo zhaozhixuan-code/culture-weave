@@ -65,9 +65,14 @@ public class Resources {
     private Long userId;
 
     /**
-     * 创建用户姓名
+     * 非遗传承人姓名
      */
     private String userName;
+
+    /**
+     * 非遗传承人简介
+     */
+    private String userDescription;
 
     /**
      * 编辑时间

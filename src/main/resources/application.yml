@@ -59,3 +59,15 @@ knife4j:
     language: zh_cn
 
 
+#  用于百度搜索 https://www.searchapi.io/
+searchapi:
+  api-key: "${culture-weave.searchapi.api-key}"
+
+# 腾讯云对象存储配置
+cos:
+  client:
+    host: ${culture-weave.cos.client.host}
+    secret-id: ${culture-weave.cos.client.secret-id}
+    secret-key: ${culture-weave.cos.client.secret-key}
+    bucket: ${culture-weave.cos.client.bucket}
+    region: ${culture-weave.cos.client.region}

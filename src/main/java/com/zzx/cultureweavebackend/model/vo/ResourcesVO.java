@@ -65,9 +65,14 @@ public class ResourcesVO implements Serializable {
     private UserVO userVO;
 
     /**
-     * 创建用户姓名
+     * 非遗传承人
      */
     private String userName;
+
+    /**
+     * 非遗传承人简介
+     */
+    private String userDescription;
 
 
     /**

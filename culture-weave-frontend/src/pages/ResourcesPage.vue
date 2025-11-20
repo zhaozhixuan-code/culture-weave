@@ -29,6 +29,15 @@
                         <SearchOutlined v-else />
                     </button>
                 </div>
+                <!-- AI问非遗按钮 -->
+                <div class="ai-chat-btn-wrapper">
+                    <button class="ai-chat-btn" @click="toggleAiChat" title="AI问非遗">
+                        <span class="btn-icon-wrapper">
+                            <RobotOutlined class="btn-icon" />
+                        </span>
+                        <span class="btn-text">AI问非遗</span>
+                    </button>
+                </div>
                 <!-- 添加非遗资源按钮 -->
                 <div class="publish-btn-wrapper">
                     <a-button type="primary" size="large" @click="onPublish" class="publish-btn">
@@ -59,20 +68,53 @@
                         <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
                     </select>
                 </div>
-
-                <div class="filter-group">
-                    <label class="filter-label">标签筛选</label>
-                    <div class="tags-input-wrapper">
-                        <input v-model="filters.tagsText" type="text"
-                            :class="['tags-input', { 'loading-glimmer': showTopBarLoading }]"
-                            placeholder="输入标签，用逗号或回车分隔" @keydown.enter.prevent="commitTagsInput"
-                            @blur="commitTagsInput" />
-                    </div>
-                </div>
-
                 <button :class="['reset-btn', { 'loading-glimmer': showTopBarLoading }]" @click="onReset">重置筛选</button>
             </div>
         </section>
+
+        <!-- AI问答框 - 使用 Teleport 传送到 body 以确保固定定位正确 -->
+        <Teleport to="body">
+            <transition name="ai-chat-slide">
+                <div v-if="showAiChat" class="ai-chat-container">
+                    <div class="ai-chat-box">
+                        <div class="ai-chat-header">
+                            <div class="ai-chat-title">
+                                <RobotOutlined />
+                                <span>AI问非遗</span>
+                            </div>
+                            <button class="ai-chat-close" @click="closeAiChat" title="关闭">
+                                <CloseOutlined />
+                            </button>
+                        </div>
+                        <div class="ai-chat-messages" ref="messagesContainer" @click="handleLinkClick">
+                            <div v-if="aiMessages.length === 0" class="ai-chat-empty">
+                                <p>您好！我是非遗AI助手，可以回答关于非物质文化遗产的问题。</p>
+                                <p class="ai-chat-hint">例如：苏绣发源地在哪？</p>
+                            </div>
+                            <div v-for="(msg, index) in aiMessages" :key="index" :class="['ai-message', msg.role]">
+                                <div v-if="msg.content || msg.loading" class="ai-message-content">
+                                    <span v-html="parseMessageContent(msg.content)"></span>
+                                    <span v-if="msg.loading && !msg.content"
+                                        class="ai-message-placeholder">思考中...</span>
+                                </div>
+                                <div v-if="msg.role === 'assistant' && msg.loading" class="ai-message-loading">
+                                    <a-spin size="small" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ai-chat-input-wrapper">
+                            <input v-model="aiInputMessage" type="text" class="ai-chat-input" placeholder="苏绣发源地在哪？"
+                                @keydown.enter="sendAiMessage" :disabled="aiLoading" />
+                            <button class="ai-chat-send" @click="sendAiMessage"
+                                :disabled="aiLoading || !aiInputMessage.trim()">
+                                <SendOutlined v-if="!aiLoading" />
+                                <a-spin v-else size="small" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </transition>
+        </Teleport>
 
         <!-- 资源卡片展示区域 -->
         <section :class="['resources-section', 'section-anim', { 'is-visible': pageReady }]">
@@ -168,13 +210,17 @@ import {
     FolderOutlined,
     TagOutlined,
     UserOutlined,
-    PlusOutlined
+    PlusOutlined,
+    RobotOutlined,
+    CloseOutlined,
+    SendOutlined
 } from '@ant-design/icons-vue'
 import {
     listResourcesVoByPage,
     getResourceCategoryList
 } from '../api/resourcesController'
 import { useLoginUserStore } from '../stores/useLoginUserStore'
+import myAxios from '../request'
 
 type ResourceVO = {
     id?: number
@@ -250,6 +296,14 @@ const filters = reactive<{
 const pagination = reactive({ current: 1, pageSize: 24 })
 
 const showTopBarLoading = computed(() => loading.value)
+
+// AI问答相关状态
+const showAiChat = ref(false)
+const aiInputMessage = ref('')
+const aiMessages = ref<Array<{ role: 'user' | 'assistant'; content: string; loading?: boolean }>>([])
+const aiLoading = ref(false)
+const currentChatId = ref(`chat_${Date.now()}`)
+const messagesContainer = ref<HTMLElement | null>(null)
 
 watch(loading, async newVal => {
     if (newVal) {
@@ -465,6 +519,313 @@ function onPublish() {
     router.push('/addResources')
 }
 
+// AI问答相关函数
+function toggleAiChat() {
+    // 如果正在关闭，直接关闭
+    if (showAiChat.value) {
+        showAiChat.value = false
+        return
+    }
+
+    // 如果正在打开，需要检查登录状态
+    // 检查是否登录
+    if (!currentUserId.value) {
+        message.warning('请先登录后再使用AI问答功能')
+        // 跳转到登录页，并保存当前页面路径，登录后可以返回
+        router.push({
+            path: '/user/login',
+            query: {
+                redirect: route.fullPath
+            }
+        })
+        return
+    }
+
+    // 已登录，打开问答框
+    showAiChat.value = true
+    // 滚动到底部
+    nextTick(() => {
+        scrollToBottom()
+    })
+}
+
+function closeAiChat() {
+    showAiChat.value = false
+}
+
+function scrollToBottom() {
+    if (messagesContainer.value) {
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    }
+}
+
+// 解析消息内容，将 Markdown 链接转换为可点击的 HTML 链接
+function parseMessageContent(content: string): string {
+    if (!content) return ''
+
+    // 转义 HTML 特殊字符，防止 XSS 攻击
+    const escapeHtml = (text: string) => {
+        const map: { [key: string]: string } = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        }
+        return text.replace(/[&<>"']/g, (m) => map[m])
+    }
+
+    // 匹配 Markdown 链接格式：[文本](URL)
+    // 使用非贪婪匹配，支持多个链接
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
+
+    const placeholders: string[] = []
+    const links: Array<{ text: string; url: string }> = []
+    let placeholderIndex = 0
+
+    // 用占位符替换所有链接，同时收集链接信息
+    let result = content.replace(linkRegex, (match, linkText, url) => {
+        const placeholder = `__LINK_PLACEHOLDER_${placeholderIndex}__`
+        placeholders.push(placeholder)
+        links.push({ text: linkText, url: url })
+        placeholderIndex++
+        return placeholder
+    })
+
+    // 转义整个文本（占位符不会被转义影响）
+    result = escapeHtml(result)
+
+    // 恢复占位符为 HTML 链接
+    links.forEach((link, index) => {
+        const escapedText = escapeHtml(link.text)
+        const originalUrl = link.url
+
+        // 处理 URL：判断是内部链接还是外部链接
+        let finalUrl = originalUrl
+        let isExternal = false
+
+        // 检查是否是外部链接（http/https协议开头）
+        if (originalUrl.startsWith('http://') || originalUrl.startsWith('https://')) {
+            isExternal = true
+            finalUrl = escapeHtml(originalUrl)
+        }
+        // 检查是否是协议相对链接
+        else if (originalUrl.startsWith('//')) {
+            isExternal = true
+            finalUrl = escapeHtml(originalUrl)
+        }
+        // 处理 localhost URL：如果是 localhost:端口号，提取路径部分作为内部链接
+        else if (originalUrl.includes('localhost:') || originalUrl.includes('127.0.0.1:')) {
+            // 提取路径部分，例如 localhost:5173/resources/xxx -> /resources/xxx
+            // 找到第一个斜杠的位置
+            const slashIndex = originalUrl.indexOf('/', originalUrl.indexOf(':'))
+            if (slashIndex !== -1) {
+                finalUrl = originalUrl.substring(slashIndex)
+            } else {
+                finalUrl = '/'
+            }
+            finalUrl = escapeHtml(finalUrl)
+        }
+        // 相对路径，确保以 / 开头
+        else {
+            finalUrl = originalUrl.startsWith('/') ? escapeHtml(originalUrl) : '/' + escapeHtml(originalUrl)
+        }
+
+        // 创建 HTML 链接
+        const htmlLink = `<a href="${finalUrl}" class="ai-message-link" data-href="${finalUrl}" ${isExternal ? 'target="_blank" rel="noopener noreferrer"' : ''}>${escapedText}</a>`
+
+        // 替换占位符
+        result = result.replace(placeholders[index], htmlLink)
+    })
+
+    // 将换行符转换为 <br>
+    result = result.replace(/\n/g, '<br>')
+
+    return result
+}
+
+// 处理链接点击事件（事件委托）
+function handleLinkClick(event: Event) {
+    const target = event.target as HTMLElement
+    const link = target.closest('.ai-message-link') as HTMLAnchorElement
+
+    if (link) {
+        event.preventDefault()
+        event.stopPropagation()
+
+        const href = link.getAttribute('data-href') || link.getAttribute('href') || ''
+
+        if (href) {
+            // 如果链接已经有 target="_blank"，让浏览器默认行为处理
+            if (link.hasAttribute('target') && link.getAttribute('target') === '_blank') {
+                window.open(href, '_blank', 'noopener,noreferrer')
+            }
+            // 如果是外部链接（以 http/https 开头），在新窗口打开
+            else if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//')) {
+                window.open(href, '_blank', 'noopener,noreferrer')
+            }
+            // 如果是内部链接，使用 Vue Router 跳转
+            else {
+                router.push(href)
+            }
+        }
+    }
+}
+
+async function sendAiMessage() {
+    const messageText = aiInputMessage.value.trim()
+    if (!messageText || aiLoading.value) return
+
+    // 添加用户消息
+    aiMessages.value.push({
+        role: 'user',
+        content: messageText
+    })
+    aiInputMessage.value = ''
+
+    // 添加助手占位消息
+    const assistantIndex = aiMessages.value.length
+    aiMessages.value.push({
+        role: 'assistant',
+        content: '',
+        loading: true
+    })
+
+    aiLoading.value = true
+    scrollToBottom()
+
+    try {
+        // 使用 fetch 处理 SSE 流
+        const baseURL = myAxios.defaults.baseURL || 'http://localhost:8123'
+        const params = new URLSearchParams({
+            message: messageText,
+            chatId: currentChatId.value
+        })
+        const url = `${baseURL}/ai/chat/sse?${params.toString()}`
+
+        // 获取认证 token（如果需要）
+        const cookies = document.cookie.split(';')
+        let sessionId = ''
+        cookies.forEach(cookie => {
+            const [name, value] = cookie.trim().split('=')
+            if (name === 'JSESSIONID' || name === 'sessionId') {
+                sessionId = value
+            }
+        })
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Accept': 'text/event-stream',
+                ...(sessionId ? { 'Cookie': `${sessionId.includes('=') ? '' : 'JSESSIONID='}${sessionId}` } : {})
+            },
+            credentials: 'include'
+        })
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const reader = response.body?.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+
+        if (!reader) {
+            throw new Error('无法读取响应流')
+        }
+
+        while (true) {
+            const { done, value } = await reader.read()
+
+            if (done) break
+
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split('\n')
+            buffer = lines.pop() || ''
+
+            for (const line of lines) {
+                // SSE格式：data: 内容 或 data:内容
+                if (line.startsWith('data:')) {
+                    // 提取 data: 后面的内容（支持 data: 和 data:内容两种格式）
+                    let data = line.slice(5) // 移除 'data:'
+                    // 如果第一个字符是空格，则移除
+                    if (data.length > 0 && data[0] === ' ') {
+                        data = data.slice(1)
+                    }
+
+                    // 跳过空数据和结束标记
+                    if (data && data !== '[DONE]') {
+                        // 确保消息存在，然后更新内容
+                        if (aiMessages.value[assistantIndex]) {
+                            // 使用数组索引访问并直接更新，Vue 3 的响应式系统会检测到
+                            const message = aiMessages.value[assistantIndex]
+                            // 直接赋值以确保响应式更新
+                            aiMessages.value[assistantIndex] = {
+                                ...message,
+                                content: message.content + data,
+                                loading: false
+                            }
+
+                            // 触发Vue更新和滚动（使用 requestAnimationFrame 确保渲染后再滚动）
+                            requestAnimationFrame(() => {
+                                nextTick(() => {
+                                    scrollToBottom()
+                                })
+                            })
+                        }
+                    }
+                }
+            }
+        }
+
+        // 处理剩余的 buffer
+        if (buffer.trim()) {
+            const lines = buffer.split('\n')
+            for (const line of lines) {
+                if (line.startsWith('data:')) {
+                    let data = line.slice(5)
+                    if (data.length > 0 && data[0] === ' ') {
+                        data = data.slice(1)
+                    }
+                    if (data && data !== '[DONE]') {
+                        if (aiMessages.value[assistantIndex]) {
+                            const message = aiMessages.value[assistantIndex]
+                            // 使用展开运算符创建新对象以确保响应式更新
+                            aiMessages.value[assistantIndex] = {
+                                ...message,
+                                content: message.content + data,
+                                loading: false
+                            }
+                            requestAnimationFrame(() => {
+                                nextTick(() => {
+                                    scrollToBottom()
+                                })
+                            })
+                        }
+                    }
+                }
+            }
+        }
+
+        // 确保 loading 状态已清除
+        if (aiMessages.value[assistantIndex]) {
+            aiMessages.value[assistantIndex].loading = false
+        }
+    } catch (error: any) {
+        console.error('AI对话失败', error)
+        message.error(error.message || 'AI对话失败，请稍后重试')
+
+        // 移除占位消息，添加错误消息
+        if (aiMessages.value[assistantIndex]) {
+            aiMessages.value[assistantIndex].content = '抱歉，发生了错误，请稍后重试。'
+            aiMessages.value[assistantIndex].loading = false
+        }
+    } finally {
+        aiLoading.value = false
+        scrollToBottom()
+    }
+}
+
 onMounted(async () => {
     requestAnimationFrame(() => {
         pageReady.value = true
@@ -563,6 +924,83 @@ onMounted(async () => {
     flex: 1;
     min-width: 300px;
     max-width: 800px;
+}
+
+.ai-chat-btn-wrapper {
+    display: flex;
+    align-items: center;
+    margin-left: 12px;
+}
+
+.ai-chat-btn {
+    height: 52px;
+    padding: 0 24px;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 26px;
+    background: linear-gradient(135deg, #845bff, #3d6bff);
+    border: none;
+    box-shadow: 0 4px 16px rgba(132, 91, 255, 0.35);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    color: #fff;
+    cursor: pointer;
+}
+
+.ai-chat-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.ai-chat-btn:hover::before {
+    left: 100%;
+}
+
+.ai-chat-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 24px rgba(132, 91, 255, 0.45);
+    background: linear-gradient(135deg, #7445e6, #2d5ae6);
+}
+
+.ai-chat-btn:active {
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 2px 8px rgba(132, 91, 255, 0.3);
+}
+
+.ai-chat-btn .btn-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    transition: transform 0.3s ease;
+    position: relative;
+    z-index: 1;
+}
+
+.ai-chat-btn:hover .btn-icon-wrapper {
+    transform: rotate(15deg) scale(1.1);
+}
+
+.ai-chat-btn .btn-icon {
+    font-size: 18px;
+    transition: transform 0.3s ease;
+}
+
+.ai-chat-btn .btn-text {
+    letter-spacing: 0.5px;
+    position: relative;
+    z-index: 1;
 }
 
 .search-input-container {
@@ -1214,6 +1652,314 @@ onMounted(async () => {
 
     .card-content {
         padding: 16px;
+    }
+}
+
+/* AI问答框样式 */
+.ai-chat-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+    width: 420px;
+    max-width: calc(100vw - 48px);
+}
+
+.ai-chat-box {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    height: 600px;
+    max-height: calc(100vh - 100px);
+    overflow: hidden;
+    animation: ai-chat-pop-in 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes ai-chat-pop-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.ai-chat-slide-enter-active,
+.ai-chat-slide-leave-active {
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ai-chat-slide-enter-from,
+.ai-chat-slide-leave-to {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+}
+
+.ai-chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #845bff, #3d6bff);
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ai-chat-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.ai-chat-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.ai-chat-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+.ai-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: #f5f7fb;
+}
+
+.ai-chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ai-chat-messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ai-chat-messages::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.ai-chat-messages::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.ai-chat-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    text-align: center;
+    color: #6a7a99;
+}
+
+.ai-chat-empty p {
+    margin: 8px 0;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.ai-chat-hint {
+    color: #9aa4b8;
+    font-size: 13px;
+}
+
+.ai-message {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 80%;
+    animation: ai-message-fade-in 0.3s ease;
+}
+
+@keyframes ai-message-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ai-message.user {
+    align-self: flex-end;
+}
+
+.ai-message.assistant {
+    align-self: flex-start;
+}
+
+.ai-message-content {
+    padding: 12px 16px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.ai-message.user .ai-message-content {
+    background: linear-gradient(135deg, #845bff, #3d6bff);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+}
+
+.ai-message.assistant .ai-message-content {
+    background: #fff;
+    color: #1a2332;
+    border: 1px solid rgba(61, 107, 255, 0.1);
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.ai-message-loading {
+    padding: 4px 0;
+    display: flex;
+    align-items: center;
+}
+
+.ai-message-placeholder {
+    color: #9aa4b8;
+    font-style: italic;
+}
+
+.ai-message-link {
+    color: #3d6bff;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(61, 107, 255, 0.3);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.ai-message-link:hover {
+    color: #2d5ae6;
+    border-bottom-color: #2d5ae6;
+    background: rgba(61, 107, 255, 0.05);
+    padding: 0 2px;
+    margin: 0 -2px;
+    border-radius: 3px;
+}
+
+.ai-message.user .ai-message-link {
+    color: rgba(255, 255, 255, 0.9);
+    border-bottom-color: rgba(255, 255, 255, 0.5);
+}
+
+.ai-message.user .ai-message-link:hover {
+    color: #fff;
+    border-bottom-color: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.ai-chat-input-wrapper {
+    display: flex;
+    gap: 12px;
+    padding: 16px 20px;
+    background: #fff;
+    border-top: 1px solid #e8ecf4;
+}
+
+.ai-chat-input {
+    flex: 1;
+    height: 44px;
+    padding: 0 16px;
+    border: 2px solid rgba(61, 107, 255, 0.2);
+    border-radius: 22px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s ease;
+    background: #f5f7fb;
+}
+
+.ai-chat-input:focus {
+    border-color: #3d6bff;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(61, 107, 255, 0.1);
+}
+
+.ai-chat-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.ai-chat-send {
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 22px;
+    background: linear-gradient(135deg, #845bff, #3d6bff);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.ai-chat-send:hover:not(:disabled) {
+    background: linear-gradient(135deg, #7445e6, #2d5ae6);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(132, 91, 255, 0.4);
+}
+
+.ai-chat-send:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.ai-chat-send:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+    .search-bar {
+        gap: 12px;
+    }
+
+    .ai-chat-btn-wrapper {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .ai-chat-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .ai-chat-container {
+        width: calc(100vw - 32px);
+        right: 16px;
+        bottom: 16px;
+    }
+
+    .ai-chat-box {
+        height: 500px;
+        max-height: calc(100vh - 80px);
     }
 }
 </style>

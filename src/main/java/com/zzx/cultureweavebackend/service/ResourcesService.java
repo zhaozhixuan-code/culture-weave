@@ -11,6 +11,7 @@ import com.zzx.cultureweavebackend.model.po.User;
 import com.zzx.cultureweavebackend.model.vo.ResourcesVO;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Flux;
 
 /**
  * @author 28299
@@ -78,4 +79,12 @@ public interface ResourcesService extends IService<Resources> {
      */
     Page<ResourcesVO> getResourcesVOPage(long current, long size, ResourcesQueryRequest resourcesQueryRequest);
 
+
+    /**
+     * 资源一键解释
+     * @param resourcesId 资源id
+     * @param loginUser 登录用户
+     * @return
+     */
+    Flux<String> explainResourcesByChat(Long resourcesId, User loginUser);
 }

@@ -47,9 +47,14 @@ public class ResourcesAddRequest implements Serializable {
     private String region;
 
     /**
-     * 创建用户姓名 如：张三
+     * 非遗传承人
      */
     private String userName;
+
+    /**
+     * 非遗传承人简介
+     */
+    private String userDescription;
 
     /**
      * 授权价格

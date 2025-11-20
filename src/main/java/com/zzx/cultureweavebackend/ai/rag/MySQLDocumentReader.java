@@ -36,6 +36,7 @@ public class MySQLDocumentReader {
         // 构建内容
         StringBuilder content = new StringBuilder();
         // 获取所有的属性
+        Long resourcesId = resources.getId();
         String name = resources.getName();
         String introduction = resources.getIntroduction();
         String category = resources.getCategory();
@@ -51,7 +52,8 @@ public class MySQLDocumentReader {
                 .append("非遗地区: ").append(region).append("\n")
                 .append("非遗资源授权价格: ").append(price).append("\n")
                 .append("非遗传承人: ").append(userName).append("\n")
-                .append("更新时间: ").append(updateTime).append("\n");
+                .append("更新时间: ").append(updateTime).append("\n")
+                .append("资源id: ").append(resourcesId);
 
         return content.toString();
     }

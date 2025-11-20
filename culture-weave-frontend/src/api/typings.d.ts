@@ -81,6 +81,15 @@ declare namespace API {
     id?: number
   }
 
+  type doChatWithSSEParams = {
+    message: string
+    chatId: string
+  }
+
+  type explainResourcesByChatParams = {
+    resourcesId: number
+  }
+
   type getResourcesVOById1Params = {
     id: number
   }
@@ -250,6 +259,7 @@ declare namespace API {
     price?: number
     userId?: number
     userName?: string
+    userDescription?: string
     editTime?: string
     createTime?: string
     updateTime?: string
@@ -264,6 +274,7 @@ declare namespace API {
     tags?: string[]
     region?: string
     userName?: string
+    userDescription?: string
     price?: number
   }
 
@@ -295,6 +306,7 @@ declare namespace API {
     tags?: string[]
     region?: string
     userName?: string
+    userDescription?: string
     price?: number
   }
 
@@ -310,6 +322,7 @@ declare namespace API {
     userId?: number
     userVO?: UserVO
     userName?: string
+    userDescription?: string
   }
 
   type User = {

@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.zzx.cultureweavebackend.constants.FileConstant;
 import com.zzx.cultureweavebackend.exception.BusinessException;
 import com.zzx.cultureweavebackend.exception.ErrorCode;
 import com.zzx.cultureweavebackend.exception.ThrowUtils;
@@ -18,11 +17,12 @@ import com.zzx.cultureweavebackend.model.enums.FileUploadPathEnum;
 import com.zzx.cultureweavebackend.model.po.Post;
 import com.zzx.cultureweavebackend.model.po.User;
 import com.zzx.cultureweavebackend.model.vo.PostVO;
+import com.zzx.cultureweavebackend.model.vo.UploadPictureResult;
 import com.zzx.cultureweavebackend.model.vo.UserVO;
 import com.zzx.cultureweavebackend.service.PostService;
 import com.zzx.cultureweavebackend.mapper.PostMapper;
 import com.zzx.cultureweavebackend.service.UserService;
-import com.zzx.cultureweavebackend.utils.ImageUtil;
+import com.zzx.cultureweavebackend.utils.upload.FilePictureUpload;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -42,8 +42,10 @@ import java.util.stream.Collectors;
 public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         implements PostService {
 
+
+
     @Resource
-    private ImageUtil imageUtil;
+    private FilePictureUpload filePictureUpload;
 
     @Resource
     private UserService userService;
@@ -73,11 +75,12 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         }
         Post post = new Post();
         // 上传图片
-        String imagePath = imageUtil.saveImage(image, FileUploadPathEnum.PUBLIC);
+        String path = String.format(FileUploadPathEnum.PUBLIC + "/%s", loginUser.getId());
+        UploadPictureResult uploadPictureResult = filePictureUpload.uploadPicture(image, path);
         // 获取图片访问地址
-        String imageUrl = FileConstant.URL + imagePath;
+        String imagePath = uploadPictureResult.getUrl();
         // 存入数据库
-        post.setPictureUrl(imageUrl);
+        post.setPictureUrl(imagePath);
         post.setTitle(postAddRequest.getTitle());
         post.setContent(postAddRequest.getContent());
         post.setUserId(loginUser.getId());
@@ -142,10 +145,12 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
         BeanUtil.copyProperties(postUpdateRequest, updatePost);
         // 上传图片
         if (image != null) {
-            String imagePath = imageUtil.saveImage(image, FileUploadPathEnum.PUBLIC);
+            // 上传图片
+            String path = String.format(FileUploadPathEnum.PUBLIC + "/%s", loginUser.getId());
+            UploadPictureResult uploadPictureResult = filePictureUpload.uploadPicture(image, path);
             // 获取图片访问地址
-            String imageUrl = FileConstant.URL + imagePath;
-            updatePost.setPictureUrl(imageUrl);
+            String imagePath = uploadPictureResult.getUrl();
+            updatePost.setPictureUrl(imagePath);
         }
 
         boolean result = this.update().eq("id", postUpdateRequest.getId())

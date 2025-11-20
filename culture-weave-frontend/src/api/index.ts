@@ -6,9 +6,11 @@ import * as userController from './userController'
 import * as resourcesController from './resourcesController'
 import * as postController from './postController'
 import * as healthController from './healthController'
+import * as aiController from './aiController'
 export default {
   userController,
   resourcesController,
   postController,
   healthController,
+  aiController,
 }

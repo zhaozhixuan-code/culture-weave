@@ -19,11 +19,12 @@
         <result property="createTime" column="createTime"/>
         <result property="updateTime" column="updateTime"/>
         <result property="isDelete" column="isDelete"/>
+        <result property="userDescription" column="userDescription"/>
     </resultMap>
 
     <sql id="Base_Column_List">
         id,name,category,introduction,resourceImgUrl,tags,
         region,price,userId,userName,editTime,
-        createTime,updateTime,isDelete
+        createTime,updateTime,isDelete,userDescription
     </sql>
 </mapper>

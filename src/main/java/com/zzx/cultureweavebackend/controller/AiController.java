@@ -1,6 +1,11 @@
 package com.zzx.cultureweavebackend.controller;
 
-import com.zzx.cultureweavebackend.ai.ChatApp;
+import com.zzx.cultureweavebackend.ai.ResourcesChatApp;
+import com.zzx.cultureweavebackend.exception.ErrorCode;
+import com.zzx.cultureweavebackend.exception.ThrowUtils;
+import com.zzx.cultureweavebackend.model.po.User;
+import com.zzx.cultureweavebackend.service.ResourcesService;
+import com.zzx.cultureweavebackend.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.MediaType;
@@ -18,8 +23,13 @@ import reactor.core.publisher.Flux;
 public class AiController {
 
     @Resource
-    private ChatApp chatApp;
+    private ResourcesChatApp resourcesChatApp;
 
+    @Resource
+    private UserService userService;
+
+    @Resource
+    private ResourcesService resourcesService;
 
 
     /**
@@ -32,9 +42,25 @@ public class AiController {
     public Flux<String> doChatWithSSE(
             @RequestParam("message") String message,
             @RequestParam("chatId") String chatId,
-            HttpServletRequest  request) {
+            HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR);
+        return resourcesChatApp.doChatWithRAGByStream(message, chatId);
+    }
 
-        System.out.println(">>> 收到 message = [" + message + "], chatId = [" + chatId + "]");
-        return chatApp.doChatByStream(message, chatId);
+
+    /**
+     * 利用AI一键解释资源接口
+     * @param resourcesId 资源id
+     * @param request
+     * @return
+     */
+    @GetMapping(value = "/explain/resources", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> explainResourcesByChat(
+            @RequestParam("resourcesId") Long resourcesId,
+            HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR);
+        return resourcesService.explainResourcesByChat(resourcesId, loginUser);
     }
 }

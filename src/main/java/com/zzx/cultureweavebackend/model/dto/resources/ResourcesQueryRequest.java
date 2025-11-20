@@ -56,7 +56,7 @@ public class ResourcesQueryRequest extends PageRequest implements Serializable {
     private String region;
 
     /**
-     * 创建用户姓名
+     * 非遗传承人
      */
     private String userName;
 

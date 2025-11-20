@@ -18,10 +18,11 @@ import java.util.Date;
 
 
 /**
- * 图片处理工具类
+ * 图片处理工具类 此方法废弃，使用腾讯云存储
  */
 @Slf4j
 @Component
+@Deprecated
 public class ImageUtil {
 
     // 非遗资源目录

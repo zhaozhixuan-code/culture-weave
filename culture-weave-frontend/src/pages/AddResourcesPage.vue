@@ -4,34 +4,34 @@
             <template #title>
                 <div class="card-header">
                     <ArrowLeftOutlined @click="goBack" class="back-icon" />
-                  <span>{{ isEditMode ? '编辑非遗资源' : '添加非遗资源' }}</span>
+                    <span>{{ isEditMode ? '编辑非遗资源' : '添加非遗资源' }}</span>
                 </div>
             </template>
 
             <a-form :model="formModel" :rules="rules" ref="formRef" layout="vertical" @finish="onSubmit">
 
-              <a-col :xs="24">
-                <a-form-item label="封面图片" name="imageFile" required>
-                  <div class="upload-section">
-                    <a-upload v-model:file-list="fileList" :before-upload="beforeUpload" :max-count="1"
-                              list-type="picture-card" accept="image/*" @remove="handleRemove"
-                              :show-upload-list="{ showPreviewIcon: false }">
-                      <div v-if="fileList.length < 1">
-                        <PlusOutlined/>
-                        <div style="margin-top: 8px">上传封面</div>
-                      </div>
-                    </a-upload>
-                    <div v-if="imagePreview" class="image-preview">
-                      <img :src="imagePreview" alt="预览"/>
-                    </div>
-                  </div>
-                  <div class="form-hint">请上传资源封面图片（支持 JPG、PNG 等格式）</div>
-                </a-form-item>
-              </a-col>
+                <a-col :xs="24">
+                    <a-form-item label="封面图片" name="imageFile" required>
+                        <div class="upload-section">
+                            <a-upload v-model:file-list="fileList" :before-upload="beforeUpload" :max-count="1"
+                                list-type="picture-card" accept="image/*" @remove="handleRemove"
+                                :show-upload-list="{ showPreviewIcon: false }">
+                                <div v-if="fileList.length < 1">
+                                    <PlusOutlined />
+                                    <div style="margin-top: 8px">上传封面</div>
+                                </div>
+                            </a-upload>
+                            <div v-if="imagePreview" class="image-preview">
+                                <img :src="imagePreview" alt="预览" />
+                            </div>
+                        </div>
+                        <div class="form-hint">请上传资源封面图片（支持 JPG、PNG 等格式）</div>
+                    </a-form-item>
+                </a-col>
                 <a-row :gutter="24">
                     <a-col :xs="24" :md="12">
-                      <a-form-item label="非遗名称" name="name" required>
-                        <a-input v-model:value="formModel.name" placeholder="请输入非遗名称" size="large"/>
+                        <a-form-item label="非遗名称" name="name" required>
+                            <a-input v-model:value="formModel.name" placeholder="请输入非遗名称" size="large" />
                         </a-form-item>
                     </a-col>
 
@@ -54,17 +54,23 @@
                     </a-col>
 
                     <a-col :xs="24" :md="12">
-                      <a-form-item label="非遗传承人" name="userName">
+                        <a-form-item label="非遗传承人" name="userName">
                             <a-input v-model:value="formModel.userName" placeholder="可选，留空则使用当前登录用户" size="large" />
                         </a-form-item>
                     </a-col>
 
 
                     <a-col :xs="24">
-                      <a-form-item label="非遗简介" name="introduction">
-                        <a-textarea v-model:value="formModel.introduction"
-                                    placeholder="请介绍一下这个非遗的来源、特点、传承方式等"
-                                    :rows="4" :maxlength="500" show-count/>
+                        <a-form-item label="非遗传承人简介" name="userDescription">
+                            <a-textarea v-model:value="formModel.userDescription" placeholder="可选，介绍传承人的经历、荣誉、传承故事等"
+                                :rows="3" :maxlength="300" show-count />
+                        </a-form-item>
+                    </a-col>
+
+                    <a-col :xs="24">
+                        <a-form-item label="非遗简介" name="introduction">
+                            <a-textarea v-model:value="formModel.introduction" placeholder="请介绍一下这个非遗的来源、特点、传承方式等"
+                                :rows="4" :maxlength="500" show-count />
                         </a-form-item>
                     </a-col>
 
@@ -104,7 +110,7 @@
                     <a-space size="large">
                         <a-button size="large" @click="goBack">取消</a-button>
                         <a-button type="primary" size="large" html-type="submit" :loading="saving">
-                          {{ saving ? '提交中...' : (isEditMode ? '保存修改' : '提交') }}
+                            {{ saving ? '提交中...' : (isEditMode ? '保存修改' : '提交') }}
                         </a-button>
                     </a-space>
                 </a-form-item>
@@ -116,12 +122,12 @@
 <script setup lang="ts">
 /// <reference path="../api/typings.d.ts" />
 import { ref, reactive, onMounted, computed } from 'vue'
-import {useRouter, useRoute} from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import type { FormInstance } from 'ant-design-vue'
 import { ArrowLeftOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import type { UploadProps, UploadFile } from 'ant-design-vue'
-import {addResource, getResourceCategoryList, getResourcesVoById, updateResource} from '../api/resourcesController'
+import { addResource, getResourceCategoryList, getResourcesVoById, updateResource } from '../api/resourcesController'
 
 const router = useRouter()
 const route = useRoute()
@@ -136,9 +142,9 @@ const tagsText = ref('')
 const hasExistingCover = ref(false)
 
 const editId = computed(() => {
-  const p = route.params?.id as string | undefined
-  const q = (route.query?.id as string | undefined) || undefined
-  return p || q || ''
+    const p = route.params?.id as string | undefined
+    const q = (route.query?.id as string | undefined) || undefined
+    return p || q || ''
 })
 
 const isEditMode = computed(() => !!editId.value)
@@ -150,6 +156,7 @@ const formModel = reactive<{
     tags: string[]
     region: string
     userName: string
+    userDescription: string
     price?: number
     commercial: boolean
     imageFile?: File | null
@@ -160,6 +167,7 @@ const formModel = reactive<{
     tags: [],
     region: '',
     userName: '',
+    userDescription: '',
     price: undefined,
     commercial: false,
     imageFile: undefined
@@ -167,13 +175,13 @@ const formModel = reactive<{
 
 // 表单验证规则
 const rules = computed(() => {
-  const base = {
-    name: [{required: true, message: '请输入资源名称', trigger: 'blur'}]
-  } as any
-  if (!isEditMode.value && !hasExistingCover.value) {
-    base.imageFile = [{required: true, message: '请上传封面图片', trigger: 'change'}]
-  }
-  return base
+    const base = {
+        name: [{ required: true, message: '请输入资源名称', trigger: 'blur' }]
+    } as any
+    if (!isEditMode.value && !hasExistingCover.value) {
+        base.imageFile = [{ required: true, message: '请上传封面图片', trigger: 'change' }]
+    }
+    return base
 })
 
 const priceRules = computed(() => {
@@ -292,12 +300,12 @@ async function onSubmit() {
         return
     }
 
-  // 编辑模式下允许不更换封面；新增模式必须有封面
-  if (!isEditMode.value) {
-    if (!imageFile.value) {
-      message.error('请上传资源封面图片')
-      return
-    }
+    // 编辑模式下允许不更换封面；新增模式必须有封面
+    if (!isEditMode.value) {
+        if (!imageFile.value) {
+            message.error('请上传资源封面图片')
+            return
+        }
     }
 
     if (formModel.commercial) {
@@ -319,41 +327,42 @@ async function onSubmit() {
             category: formModel.category || undefined,
             region: formModel.region || undefined,
             userName: formModel.userName || undefined,
+            userDescription: formModel.userDescription || undefined,
             tags: formModel.tags.length > 0 ? formModel.tags : undefined,
             price: formModel.commercial && formModel.price !== undefined ? Math.trunc(formModel.price) : undefined
         }
 
-      if (isEditMode.value) {
-        // 更新资源（不处理封面更换；如需更换，需后端提供带文件的更新接口）
-        const updateBody: any = {
-          id: editId.value,
-          ...payload
-        }
-        const res = await updateResource(updateBody)
-        const responseData = (res as any)?.data
-        if (responseData?.code === 0 && responseData?.data) {
-          message.success('资源更新成功！')
-          router.push(`/resources/${String(editId.value)}`)
+        if (isEditMode.value) {
+            // 更新资源（不处理封面更换；如需更换，需后端提供带文件的更新接口）
+            const updateBody: any = {
+                id: editId.value,
+                ...payload
+            }
+            const res = await updateResource(updateBody)
+            const responseData = (res as any)?.data
+            if (responseData?.code === 0 && responseData?.data) {
+                message.success('资源更新成功！')
+                router.push(`/resources/${String(editId.value)}`)
+            } else {
+                message.error(responseData?.message || '更新资源失败')
+            }
         } else {
-          message.error(responseData?.message || '更新资源失败')
-        }
-      } else {
-        const {id: _omitId, ...resourcesAddRequest} = payload
-        const addPayload = {resourcesAddRequest}
+            const resourcesAddRequest = payload
+            const addPayload = { resourcesAddRequest }
 
-        const res = await addResource(addPayload as any, imageFile.value as File)
-        const responseData = (res as any)?.data
+            const res = await addResource(addPayload as any, imageFile.value as File)
+            const responseData = (res as any)?.data
 
-        if (responseData?.code === 0) {
-          message.success('资源添加成功！')
-          router.push('/resources')
-        } else {
-          message.error(responseData?.message || '添加资源失败')
-        }
+            if (responseData?.code === 0) {
+                message.success('资源添加成功！')
+                router.push('/resources')
+            } else {
+                message.error(responseData?.message || '添加资源失败')
+            }
         }
     } catch (e: any) {
-      console.error('提交失败', e)
-      message.error(e?.message || '提交失败，请稍后重试')
+        console.error('提交失败', e)
+        message.error(e?.message || '提交失败，请稍后重试')
     } finally {
         saving.value = false
     }
@@ -364,42 +373,47 @@ function goBack() {
 }
 
 async function loadForEdit() {
-  if (!isEditMode.value) return
-  try {
-    const res = await getResourcesVoById({id: editId.value as any})
-    const responseData = (res as any)?.data as API.BaseResponseResourcesVO
-    if (responseData?.code === 0 && responseData?.data) {
-      const r = responseData.data
-      formModel.name = r.name || ''
-      formModel.introduction = r.introduction || ''
-      formModel.category = r.category || ''
-      formModel.region = r.region || ''
-      formModel.userName = r.userName || ''
-      formModel.tags = Array.isArray(r.tags) ? (r.tags as any[]).map(v => String(v)) : (typeof r.tags === 'string' ? r.tags.split(/[，,、;；\s\n\r\t]+/).filter(Boolean) : [])
-      tagsText.value = formModel.tags.join('， ')
-      if (typeof r.price === 'number' && r.price > 0) {
-        formModel.commercial = true
-        formModel.price = Math.trunc(r.price)
-      } else {
-        formModel.commercial = false
-        formModel.price = undefined
-      }
-      if (r.resourceImgUrl) {
-        imagePreview.value = r.resourceImgUrl
-        hasExistingCover.value = true
-      } else {
-        imagePreview.value = null
-        hasExistingCover.value = false
-      }
+    if (!isEditMode.value) return
+    try {
+        const res = await getResourcesVoById({ id: editId.value as any })
+        const responseData = (res as any)?.data as API.BaseResponseResourcesVO
+        if (responseData?.code === 0 && responseData?.data) {
+            const r = responseData.data
+            formModel.name = r.name || ''
+            formModel.introduction = r.introduction || ''
+            formModel.category = r.category || ''
+            formModel.region = r.region || ''
+            formModel.userName = r.userName || ''
+            formModel.userDescription = ((r as any)?.userDescription as string | undefined) || ''
+
+            const rawTags = (r as any)?.tags
+            formModel.tags = Array.isArray(rawTags)
+                ? (rawTags as any[]).map(v => String(v))
+                : (typeof rawTags === 'string' ? rawTags.split(/[，,、;；\s\n\r\t]+/).filter(Boolean) : [])
+            tagsText.value = formModel.tags.join('， ')
+            if (typeof r.price === 'number' && r.price > 0) {
+                formModel.commercial = true
+                formModel.price = Math.trunc(r.price)
+            } else {
+                formModel.commercial = false
+                formModel.price = undefined
+            }
+            if (r.resourceImgUrl) {
+                imagePreview.value = r.resourceImgUrl
+                hasExistingCover.value = true
+            } else {
+                imagePreview.value = null
+                hasExistingCover.value = false
+            }
+        }
+    } catch (e) {
+        console.error('加载资源失败', e)
     }
-  } catch (e) {
-    console.error('加载资源失败', e)
-  }
 }
 
 onMounted(async () => {
-  await loadMeta()
-  await loadForEdit()
+    await loadMeta()
+    await loadForEdit()
 })
 </script>
 

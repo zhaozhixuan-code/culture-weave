@@ -2,13 +2,14 @@ package com.zzx.cultureweavebackend.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.zzx.cultureweavebackend.constants.FileConstant;
+import com.zzx.cultureweavebackend.ai.ResourcesChatApp;
 import com.zzx.cultureweavebackend.exception.BusinessException;
 import com.zzx.cultureweavebackend.exception.ErrorCode;
 import com.zzx.cultureweavebackend.exception.ThrowUtils;
@@ -19,14 +20,17 @@ import com.zzx.cultureweavebackend.model.enums.FileUploadPathEnum;
 import com.zzx.cultureweavebackend.model.po.Resources;
 import com.zzx.cultureweavebackend.model.po.User;
 import com.zzx.cultureweavebackend.model.vo.ResourcesVO;
+import com.zzx.cultureweavebackend.model.vo.UploadPictureResult;
 import com.zzx.cultureweavebackend.service.ResourcesService;
 import com.zzx.cultureweavebackend.mapper.ResourcesMapper;
 import com.zzx.cultureweavebackend.service.UserService;
-import com.zzx.cultureweavebackend.utils.ImageUtil;
+import com.zzx.cultureweavebackend.utils.upload.FilePictureUpload;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Flux;
 
 import java.util.Date;
 import java.util.List;
@@ -44,11 +48,16 @@ public class ResourcesServiceImpl extends ServiceImpl<ResourcesMapper, Resources
         implements ResourcesService {
 
 
+
     @Resource
-    private ImageUtil imageUtil;
+    private FilePictureUpload filePictureUpload;
 
     @Resource
     private UserService userService;
+
+    @Resource
+    @Lazy
+    private ResourcesChatApp resourcesChatApp;
 
 
     /**
@@ -74,9 +83,10 @@ public class ResourcesServiceImpl extends ServiceImpl<ResourcesMapper, Resources
             ThrowUtils.throwIf(resources == null, ErrorCode.NOT_FOUND_ERROR);
         }
         // 上传图片
-        String imagePath = imageUtil.saveImage(image, FileUploadPathEnum.RESOURCE);
+        String path = String.format(FileUploadPathEnum.RESOURCE.getValue() + "/%s", loginUser.getId());
+        UploadPictureResult uploadPictureResult = filePictureUpload.uploadPicture(image, path);
         // 获取图片访问地址
-        String imageUrl = FileConstant.URL + imagePath;
+        String imagePath = uploadPictureResult.getUrl();
         // 存入数据库
         Resources resources = new Resources();
         resources.setName(resourcesAddRequest.getName());
@@ -85,10 +95,11 @@ public class ResourcesServiceImpl extends ServiceImpl<ResourcesMapper, Resources
         List<String> tags = resourcesAddRequest.getTags();
         resources.setTags(JSONUtil.toJsonStr(tags));
         resources.setRegion(resourcesAddRequest.getRegion());
-        resources.setResourceImgUrl(imageUrl);
+        resources.setResourceImgUrl(imagePath);
         resources.setUserId(loginUser.getId());
-        resources.setUserName(loginUser.getUserName());
+        resources.setUserName(resources.getUserName());
         resources.setPrice(resourcesAddRequest.getPrice());
+        resources.setUserDescription(resourcesAddRequest.getUserDescription());
         // 如果不等于null，则更新
         boolean result;
         if (resourcesId != null) {
@@ -260,6 +271,26 @@ public class ResourcesServiceImpl extends ServiceImpl<ResourcesMapper, Resources
         queryWrapper.like(StrUtil.isNotBlank(userName), "userName", userName);
         queryWrapper.orderByDesc("createTime");
         return queryWrapper;
+    }
+
+
+    /**
+     * AI一键解释资源
+     *
+     * @param resourcesId 资源id
+     * @param loginUser   登录用户
+     * @return
+     */
+    @Override
+    public Flux<String> explainResourcesByChat(Long resourcesId, User loginUser) {
+        ResourcesVO resourcesVO = this.getResourcesVOById(resourcesId);
+        StringBuilder prompt = new StringBuilder();
+        String userPrompt = prompt.append("非遗资源名字为：").append(resourcesVO.getName()).append("\n")
+                .append("相关介绍：").append(resourcesVO.getIntroduction()).toString();
+        String chatId = UUID.randomUUID().toString();
+
+        Flux<String> chatByStream = resourcesChatApp.doChatByStream(userPrompt, chatId);
+        return chatByStream;
     }
 
 
