@@ -13,10 +13,6 @@
                             <PlusOutlined />
                             发布灵感
                         </a-button>
-                        <a-button size="large" ghost @click="refresh">
-                            <ReloadOutlined />
-                            刷新动态
-                        </a-button>
                     </div>
                 </div>
                 <div class="hero-visual">
@@ -140,7 +136,6 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
     PlusOutlined,
-    ReloadOutlined,
     SearchOutlined,
     UndoOutlined,
     CarryOutOutlined,
@@ -185,10 +180,6 @@ async function handleCreate() {
         return
     }
     router.push('/creativeCenter/create')
-}
-
-function refresh() {
-    fetchPosts()
 }
 
 function abbreviation(name?: string | null) {
@@ -331,7 +322,8 @@ onMounted(async () => {
 #creativeCenterPage {
     min-height: calc(100vh - 200px);
     padding: 0;
-    background: linear-gradient(180deg, #f8f6ff 0%, #f6fbff 100%);
+    /* 使用全局布局背景，保持色调统一 */
+    background: transparent;
 }
 
 .hero {

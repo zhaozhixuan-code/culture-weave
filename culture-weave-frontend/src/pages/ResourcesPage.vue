@@ -1,74 +1,71 @@
 <template>
     <div id="resourcesPage" :class="{ 'page-entered': pageReady }">
-        <!-- 页面主标题区块 -->
-        <section class="page-hero-wrap section-anim" :class="{ 'is-visible': pageReady }">
-            <header class="page-hero">
-                <h1 class="page-title">非遗资源库</h1>
-                <p class="page-subtitle">探索来自全国各地的非物质文化遗产资源</p>
-            </header>
-        </section>
-
-        <!-- 搜索和筛选区域 -->
+        <!-- 顶部融合区域：标题 + 搜索筛选 -->
         <section
-            :class="['search-section', 'section-anim', { 'search-loading': showTopBarLoading, 'is-visible': pageReady }]">
+            :class="['hero-search-wrap', 'section-anim', { 'search-loading': showTopBarLoading, 'is-visible': pageReady }]">
             <div v-if="showTopBarLoading" class="search-loading-overlay" aria-hidden="true"></div>
-            <div class="search-bar">
-                <div class="search-input-wrapper">
-                    <div class="search-input-container">
-                        <input v-model="filters.searchText" type="text"
-                            :class="['search-input', { 'loading-glimmer': showTopBarLoading }]"
-                            placeholder="搜索资源名称、简介或发布者..." @input="onDebouncedSearch" @keydown.enter="handleSearch"
-                            @focus="onSearchFocus" @blur="onSearchBlur" />
-                        <button v-if="filters.searchText" class="clear-btn" @click="clearSearch" title="清除搜索">
-                            <span class="clear-icon">×</span>
-                        </button>
+            <div class="hero-search-inner">
+                <header class="page-hero hero-inline">
+                    <div class="hero-text">
+                        <p class="hero-tag">文化探索</p>
+                        <h1 class="page-title">非遗资源库</h1>
+                        <p class="page-subtitle">探索来自全国各地的非物质文化遗产资源</p>
                     </div>
-                    <button :class="['search-btn', { searching: loading, 'loading-glimmer': showTopBarLoading }]"
-                        :disabled="loading" @click="handleSearch" title="搜索">
-                        <a-spin v-if="loading" :spinning="true" size="small" />
-                        <SearchOutlined v-else />
-                    </button>
-                </div>
-                <!-- AI问非遗按钮 -->
-                <div class="ai-chat-btn-wrapper">
-                    <button class="ai-chat-btn" @click="toggleAiChat" title="AI问非遗">
-                        <span class="btn-icon-wrapper">
-                            <RobotOutlined class="btn-icon" />
-                        </span>
-                        <span class="btn-text">AI问非遗</span>
-                    </button>
-                </div>
-                <!-- 添加非遗资源按钮 -->
-                <div class="publish-btn-wrapper">
-                    <a-button type="primary" size="large" @click="onPublish" class="publish-btn">
-                        <span class="btn-icon-wrapper">
-                            <PlusOutlined class="btn-icon" />
-                        </span>
-                        <span class="btn-text">添加非遗资源</span>
-                    </a-button>
-                </div>
-            </div>
+                </header>
 
-            <div class="filters-bar">
-                <div class="filter-group">
-                    <label class="filter-label">地区筛选</label>
-                    <select v-model="filters.region"
-                        :class="['filter-select', { 'loading-glimmer': showTopBarLoading }]" @change="fetchList(1)">
-                        <option value="">全部地区</option>
-                        <option v-for="r in regions" :key="r" :value="r">{{ r }}</option>
-                    </select>
+                <div class="search-bar">
+                    <div class="search-input-wrapper">
+                        <div class="search-input-container">
+                            <input v-model="filters.searchText" type="text"
+                                :class="['search-input', { 'loading-glimmer': showTopBarLoading }]"
+                                placeholder="搜索资源名称、简介或发布者..." @input="onDebouncedSearch" @keydown.enter="handleSearch"
+                                @focus="onSearchFocus" @blur="onSearchBlur" />
+                            <button v-if="filters.searchText" class="clear-btn" @click="clearSearch" title="清除搜索">
+                                <span class="clear-icon">×</span>
+                            </button>
+                        </div>
+                        <button :class="['search-btn', { searching: loading, 'loading-glimmer': showTopBarLoading }]"
+                            :disabled="loading" @click="handleSearch" title="搜索">
+                            <a-spin v-if="loading" :spinning="true" size="small" />
+                            <SearchOutlined v-else />
+                        </button>
+                        <div class="search-quick-actions">
+                            <a-button type="default" size="middle" @click="onPublish" class="publish-btn">
+                                <span class="btn-icon-wrapper">
+                                    <PlusOutlined class="btn-icon" />
+                                </span>
+                                <span class="btn-text">添加非遗资源</span>
+                            </a-button>
+                            <button class="ai-chat-btn" @click="toggleAiChat" title="AI问非遗">
+                                <span class="btn-icon-wrapper">
+                                    <RobotOutlined class="btn-icon" />
+                                </span>
+                                <span class="btn-text">AI问非遗</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- 分类筛选 -->
-                <div class="filter-group">
-                    <label class="filter-label">分类筛选</label>
-                    <select v-model="filters.category"
-                        :class="['filter-select', { 'loading-glimmer': showTopBarLoading }]" @change="fetchList(1)">
-                        <option value="">全部分类</option>
-                        <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
-                    </select>
+                <div class="filters-bar">
+                    <div class="filter-group">
+                        <label class="filter-label">地区筛选</label>
+                        <select v-model="filters.region"
+                            :class="['filter-select', { 'loading-glimmer': showTopBarLoading }]" @change="fetchList(1)">
+                            <option value="">全部地区</option>
+                            <option v-for="r in regions" :key="r" :value="r">{{ r }}</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">分类筛选</label>
+                        <select v-model="filters.category"
+                            :class="['filter-select', { 'loading-glimmer': showTopBarLoading }]" @change="fetchList(1)">
+                            <option value="">全部分类</option>
+                            <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+                        </select>
+                    </div>
+                    <button :class="['reset-btn', { 'loading-glimmer': showTopBarLoading }]" @click="onReset">重置筛选</button>
                 </div>
-                <button :class="['reset-btn', { 'loading-glimmer': showTopBarLoading }]" @click="onReset">重置筛选</button>
             </div>
         </section>
 
@@ -871,50 +868,79 @@ onMounted(async () => {
 }
 
 /* 搜索区域 */
-.search-section {
+.hero-search-wrap {
     position: relative;
     overflow: hidden;
-    background: linear-gradient(135deg, rgba(61, 107, 255, 0.05), rgba(132, 91, 255, 0.05));
-    border-radius: 20px;
-    padding: 32px;
-    margin-bottom: 32px;
-    margin-left: 8%;
-    margin-right: 8%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 248, 241, 0.96));
+    border-radius: 24px;
+    padding: 26px 28px 30px;
+    margin: 0 8% 28px;
     max-width: 1800px;
-    box-shadow: 0 8px 24px rgba(15, 35, 95, 0.06);
-}
-
-.page-hero-wrap {
-    margin: 0 8% 12px;
-    max-width: 1800px;
+    box-shadow: 0 18px 48px rgba(26, 35, 50, 0.12);
+    border: 1px solid #f0f2f7;
 }
 
 .page-hero {
-    text-align: center;
-    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 12px;
+    position: relative;
+    z-index: 1;
 }
 
-.page-title {
+.hero-text {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+
+.hero-inline .page-title {
     margin: 0;
     font-size: 36px;
-    line-height: 1.3;
-    font-weight: 700;
-    letter-spacing: 0.5px;
+    line-height: 1.24;
+    font-weight: 800;
+    letter-spacing: 0.4px;
     color: #1a2332;
 }
 
 .page-subtitle {
-    margin: 10px 0 0 0;
-    font-size: 16px;
-    color: #4f5b76;
+    margin: 0;
+    font-size: 15px;
+    color: #5c6883;
+}
+
+.hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    flex-shrink: 0;
+}
+
+.hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255, 140, 88, 0.12);
+    color: #d3632a;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    width: fit-content;
 }
 
 .search-bar {
-    margin-bottom: 24px;
+    margin-bottom: 14px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 12px;
     flex-wrap: wrap;
 }
 
@@ -922,32 +948,74 @@ onMounted(async () => {
     display: flex;
     gap: 12px;
     flex: 1;
-    min-width: 300px;
-    max-width: 800px;
+    min-width: 360px;
+    max-width: 860px;
+    align-items: center;
+}
+
+.search-quick-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.search-input-wrapper :deep(.publish-btn) {
+    height: 42px;
+    padding: 0 14px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f3f4f6;
+    border: 1px solid #d9dde5;
+    color: #4a5568;
+    box-shadow: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.search-input-wrapper :deep(.publish-btn:hover) {
+    background: #eceef3;
+    border-color: #cfd4de;
+    color: #3a4660;
+    transform: translateY(-1px);
+}
+
+.search-input-wrapper :deep(.publish-btn:active) {
+    transform: translateY(0);
+    background: #e5e7ec;
+}
+
+.search-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
 }
 
 .ai-chat-btn-wrapper {
     display: flex;
     align-items: center;
-    margin-left: 12px;
+    margin-left: 0;
 }
 
 .ai-chat-btn {
-    height: 52px;
-    padding: 0 24px;
-    font-size: 16px;
+    height: 44px;
+    padding: 0 16px;
+    font-size: 15px;
     font-weight: 600;
     display: flex;
     align-items: center;
-    gap: 10px;
-    border-radius: 26px;
-    background: linear-gradient(135deg, #845bff, #3d6bff);
-    border: none;
-    box-shadow: 0 4px 16px rgba(132, 91, 255, 0.35);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    gap: 8px;
+    border-radius: 14px;
+    background: #edf1f9;
+    border: 1px solid #d9e2f3;
+    color: #2f4a7a;
+    box-shadow: none;
+    transition: all 0.25s ease;
     position: relative;
     overflow: hidden;
-    color: #fff;
     cursor: pointer;
 }
 
@@ -958,8 +1026,8 @@ onMounted(async () => {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s ease;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+    transition: left 0.4s ease;
 }
 
 .ai-chat-btn:hover::before {
@@ -967,14 +1035,16 @@ onMounted(async () => {
 }
 
 .ai-chat-btn:hover {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 24px rgba(132, 91, 255, 0.45);
-    background: linear-gradient(135deg, #7445e6, #2d5ae6);
+    transform: translateY(-2px);
+    background: #e4eaf6;
+    border-color: #c9d6ec;
+    color: #26406b;
 }
 
 .ai-chat-btn:active {
-    transform: translateY(0) scale(0.98);
-    box-shadow: 0 2px 8px rgba(132, 91, 255, 0.3);
+    transform: translateY(0);
+    background: #dce3f2;
+    border-color: #bccae5;
 }
 
 .ai-chat-btn .btn-icon-wrapper {
@@ -1008,11 +1078,69 @@ onMounted(async () => {
     flex: 1;
     display: flex;
     align-items: center;
+    background: #fff;
+    border: 1px solid #e4e7ef;
+    border-radius: 14px;
+    padding: 0 10px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 4px 10px rgba(26, 35, 50, 0.05);
 }
 
 .publish-btn-wrapper {
     display: flex;
     align-items: center;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .page-hero {
+        align-items: flex-start;
+    }
+    .search-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .search-quick-actions {
+        width: 100%;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .search-actions {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+    .search-input-wrapper {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .search-input-wrapper :deep(.publish-btn) {
+        width: 100%;
+        justify-content: center;
+    }
+    .ai-chat-btn-wrapper,
+    .publish-btn-wrapper {
+        width: 100%;
+    }
+    .search-quick-actions .ai-chat-btn,
+    .search-quick-actions :deep(.publish-btn) {
+        width: 100%;
+        justify-content: center;
+    }
+    .search-actions .ai-chat-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    .filters-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .filter-group {
+        flex: 1 1 100%;
+    }
+    .reset-btn {
+        width: 100%;
+    }
 }
 
 .publish-btn {
@@ -1024,9 +1152,9 @@ onMounted(async () => {
     align-items: center;
     gap: 10px;
     border-radius: 26px;
-    background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+    background: linear-gradient(135deg, var(--btn-primary-start), var(--btn-primary-end));
     border: none;
-    box-shadow: 0 4px 16px rgba(255, 107, 107, 0.35);
+    box-shadow: var(--btn-primary-shadow);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
@@ -1049,13 +1177,13 @@ onMounted(async () => {
 
 .publish-btn:hover {
     transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 24px rgba(255, 107, 107, 0.45);
-    background: linear-gradient(135deg, #ff5252, #ff7a3d);
+    box-shadow: var(--btn-primary-shadow);
+    filter: brightness(1.04);
 }
 
 .publish-btn:active {
     transform: translateY(0) scale(0.98);
-    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+    box-shadow: 0 2px 10px rgba(226, 118, 58, 0.3);
 }
 
 .publish-btn .btn-icon-wrapper {
@@ -1065,6 +1193,32 @@ onMounted(async () => {
     width: 24px;
     height: 24px;
     transition: transform 0.3s ease;
+}
+
+.search-input-wrapper :deep(.publish-btn.publish-btn) {
+    height: 42px;
+    padding: 0 14px;
+    border-radius: 12px;
+    gap: 6px;
+    background: #fbe8d9 !important;
+    border: 1px solid #edceb5 !important;
+    color: #6a3a1f !important;
+    box-shadow: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.search-input-wrapper :deep(.publish-btn.publish-btn:hover) {
+    background: #f6ddc9 !important;
+    border-color: #e6c3a9 !important;
+    color: #5a301a !important;
+    transform: translateY(-1px);
+}
+
+.search-input-wrapper :deep(.publish-btn.publish-btn:active) {
+    transform: translateY(0);
+    background: #f0d2bc !important;
+    border-color: #deb598 !important;
 }
 
 .publish-btn:hover .btn-icon-wrapper {
@@ -1103,20 +1257,20 @@ onMounted(async () => {
 
 .search-input {
     width: 100%;
-    height: 52px;
-    padding: 0 20px;
+    height: 44px;
+    padding: 0 10px;
     padding-right: 40px;
-    border: 2px solid rgba(61, 107, 255, 0.2);
-    border-radius: 26px;
-    font-size: 16px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
     outline: none;
-    transition: all 0.3s ease;
-    background: #fff;
+    transition: all 0.2s ease;
+    background: transparent;
 }
 
 .search-input:focus {
-    border-color: #3d6bff;
-    box-shadow: 0 0 0 4px rgba(61, 107, 255, 0.1);
+    border-color: transparent;
+    box-shadow: none;
 }
 
 .clear-btn {
@@ -1126,20 +1280,22 @@ onMounted(async () => {
     height: 28px;
     border: none;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.06);
-    color: #6a7a99;
+    background: rgba(245, 247, 252, 0.9);
+    color: #8f9bb5;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
     z-index: 1;
+    box-shadow: 0 2px 6px rgba(26, 35, 50, 0.12);
 }
 
 .clear-btn:hover {
-    background: rgba(0, 0, 0, 0.1);
-    color: #1a2332;
-    transform: scale(1.1);
+    background: #eef2fb;
+    color: #3d6bff;
+    transform: scale(1.05);
+    box-shadow: 0 3px 10px rgba(26, 35, 50, 0.15);
 }
 
 .clear-icon {
@@ -1149,31 +1305,33 @@ onMounted(async () => {
 }
 
 .search-btn {
-    width: 52px;
-    height: 52px;
-    border: none;
-    border-radius: 26px;
-    background: linear-gradient(120deg, #3d6bff, #845bff);
-    color: #fff;
+    width: 54px;
+    height: 44px;
+    border: 1px solid #d6deef;
+    border-radius: 14px;
+    background: #e8edf8;
+    color: #2f3f63;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(61, 107, 255, 0.3);
+    font-size: 18px;
+    transition: all 0.2s ease;
+    box-shadow: none;
     flex-shrink: 0;
 }
 
 .search-btn:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(61, 107, 255, 0.4);
-    background: linear-gradient(120deg, #2d5ae6, #7445e6);
+    background: #e0e6f4;
+    border-color: #c8d2e8;
+    color: #253554;
 }
 
 .search-btn:active:not(:disabled) {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(61, 107, 255, 0.3);
+    background: #d8dfef;
+    border-color: #bec9e0;
 }
 
 .search-btn:disabled {
@@ -1256,17 +1414,17 @@ onMounted(async () => {
 /* 筛选区域 */
 .filters-bar {
     display: flex;
-    gap: 20px;
-    align-items: flex-end;
+    gap: 14px;
+    align-items: center;
     flex-wrap: wrap;
 }
 
 .filter-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    flex: 1;
-    min-width: 200px;
+    gap: 6px;
+    flex: 0 0 220px;
+    min-width: 180px;
 }
 
 .filter-label {
@@ -1324,6 +1482,7 @@ onMounted(async () => {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+    align-self: flex-end;
 }
 
 .reset-btn:hover {
@@ -1374,45 +1533,46 @@ onMounted(async () => {
 }
 
 .resources-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
     margin-bottom: 40px;
-    contain: layout paint;
 }
 
 .resource-card {
     background: #fff;
-    border-radius: 16px;
+    border-radius: 14px;
     overflow: hidden;
-    box-shadow: 0 4px 16px rgba(15, 35, 95, 0.08);
-    transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-        opacity 0.5s ease, box-shadow 0.3s ease;
+    box-shadow: 0 12px 28px rgba(26, 35, 50, 0.08);
+    transition: opacity 0.5s ease, transform 0.2s ease, box-shadow 0.2s ease;
     cursor: pointer;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid #f1f3f8;
     opacity: 0;
-    transform: translate3d(0, 28px, 0) scale(0.96);
     transition-delay: calc(var(--card-stagger, 0) * 80ms);
     will-change: transform, opacity;
 }
 
 .resources-grid.cards-ready .resource-card {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
 }
 
 .resource-card:hover {
-    transform: translate3d(0, -4px, 0);
-    box-shadow: 0 12px 32px rgba(15, 35, 95, 0.12);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 34px rgba(26, 35, 50, 0.12);
+    background: #fff;
 }
 
 .card-image-wrapper {
     position: relative;
-    width: 100%;
-    height: 220px;
+    width: 260px;
+    height: 150px;
     overflow: hidden;
-    background: linear-gradient(135deg, #f5f7fb, #e8ecf4);
+    background: linear-gradient(135deg, var(--surface-card-soft), #ffe8d1);
+    border-radius: 12px;
 }
 
 .card-image {
@@ -1420,6 +1580,7 @@ onMounted(async () => {
     height: 100%;
     object-fit: cover;
     transition: transform 0.3s ease;
+    border-radius: 12px;
 }
 
 .resource-card:hover .card-image {
@@ -1456,14 +1617,14 @@ onMounted(async () => {
 
 .card-content {
     flex: 1;
-    padding: 20px;
+    padding: 4px 0;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 .card-title {
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 600;
     color: #1a2332;
     margin: 0;
@@ -1492,6 +1653,7 @@ onMounted(async () => {
     display: flex;
     gap: 16px;
     flex-wrap: wrap;
+    margin-top: 2px;
 }
 
 .meta-item {
@@ -1529,9 +1691,8 @@ onMounted(async () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: 12px;
-    border-top: 1px solid #f0f2f5;
-    margin-top: auto;
+    padding-top: 4px;
+    margin-top: 4px;
 }
 
 .card-author {
@@ -1553,21 +1714,6 @@ onMounted(async () => {
     display: flex;
     justify-content: center;
     padding: 32px 0;
-}
-
-/* 响应式 */
-@media (max-width: 1400px) {
-    .resources-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 20px;
-    }
-}
-
-@media (max-width: 1024px) {
-    .resources-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-    }
 }
 
 @media (max-width: 768px) {
@@ -1628,13 +1774,14 @@ onMounted(async () => {
         min-width: 100%;
     }
 
-    .resources-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
+    .card-image-wrapper {
+        width: 40%;
+        height: 120px;
     }
 
-    .card-image-wrapper {
-        height: 180px;
+    .resource-card {
+        flex-direction: row;
+        gap: 12px;
     }
 }
 
@@ -1666,9 +1813,9 @@ onMounted(async () => {
 }
 
 .ai-chat-box {
-    background: #fff;
+    background: linear-gradient(180deg, #fdf7f2 0%, #f9f1ea 100%);
     border-radius: 20px;
-    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     height: 600px;
@@ -1705,9 +1852,9 @@ onMounted(async () => {
     align-items: center;
     justify-content: space-between;
     padding: 16px 20px;
-    background: linear-gradient(135deg, #845bff, #3d6bff);
-    color: #fff;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: #f3dfcf;
+    color: #3d2b1f;
+    border-bottom: 1px solid #e5cfbd;
 }
 
 .ai-chat-title {
@@ -1721,10 +1868,10 @@ onMounted(async () => {
 .ai-chat-close {
     width: 32px;
     height: 32px;
-    border: none;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
-    color: #fff;
+    border: 1px solid #e6d4c4;
+    background: #faf1e8;
+    border-radius: 12px;
+    color: #5a4333;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1733,8 +1880,9 @@ onMounted(async () => {
 }
 
 .ai-chat-close:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: rotate(90deg);
+    background: #f1e3d6;
+    border-color: #d8c2b1;
+    transform: translateY(-1px);
 }
 
 .ai-chat-messages {
@@ -1744,7 +1892,7 @@ onMounted(async () => {
     display: flex;
     flex-direction: column;
     gap: 16px;
-    background: #f5f7fb;
+    background: #fefbf7;
 }
 
 .ai-chat-messages::-webkit-scrollbar {
@@ -1823,17 +1971,17 @@ onMounted(async () => {
 }
 
 .ai-message.user .ai-message-content {
-    background: linear-gradient(135deg, #845bff, #3d6bff);
-    color: #fff;
+    background: linear-gradient(135deg, #f8c78a, #f3a35c);
+    color: #42230f;
     border-bottom-right-radius: 4px;
 }
 
 .ai-message.assistant .ai-message-content {
-    background: #fff;
-    color: #1a2332;
-    border: 1px solid rgba(61, 107, 255, 0.1);
+    background: #fffaf4;
+    color: #3d2b1f;
+    border: 1px solid #efdcc7;
     border-bottom-left-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
 .ai-message-loading {
@@ -1879,61 +2027,66 @@ onMounted(async () => {
     display: flex;
     gap: 12px;
     padding: 16px 20px;
-    background: #fff;
-    border-top: 1px solid #e8ecf4;
+    background: #fbeee2;
+    border-top: 1px solid #f0dcc8;
 }
 
 .ai-chat-input {
     flex: 1;
-    height: 44px;
-    padding: 0 16px;
-    border: 2px solid rgba(61, 107, 255, 0.2);
-    border-radius: 22px;
+    height: 42px;
+    padding: 0 14px;
+    border: 1px solid #e7d5c5;
+    border-radius: 12px;
     font-size: 14px;
     outline: none;
     transition: all 0.2s ease;
-    background: #f5f7fb;
+    background: #fffaf4;
+    color: #3d2b1f;
 }
 
 .ai-chat-input:focus {
-    border-color: #3d6bff;
-    background: #fff;
-    box-shadow: 0 0 0 4px rgba(61, 107, 255, 0.1);
+    border-color: #f1b883;
+    background: #fffdf9;
+    box-shadow: 0 0 0 3px rgba(241, 184, 131, 0.25);
 }
 
 .ai-chat-input:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+    background: #f7f0ea;
 }
 
 .ai-chat-send {
     width: 44px;
-    height: 44px;
-    border: none;
-    border-radius: 22px;
-    background: linear-gradient(135deg, #845bff, #3d6bff);
-    color: #fff;
+    height: 42px;
+    border: 1px solid #e4c7af;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f6c48a, #eea868);
+    color: #3f2b1d;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
     flex-shrink: 0;
+    box-shadow: 0 6px 14px rgba(238, 168, 104, 0.25);
 }
 
 .ai-chat-send:hover:not(:disabled) {
-    background: linear-gradient(135deg, #7445e6, #2d5ae6);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(132, 91, 255, 0.4);
+    background: linear-gradient(135deg, #f3b774, #e99a56);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 16px rgba(233, 154, 86, 0.28);
 }
 
 .ai-chat-send:active:not(:disabled) {
     transform: translateY(0);
+    box-shadow: 0 4px 10px rgba(233, 154, 86, 0.24);
 }
 
 .ai-chat-send:disabled {
-    opacity: 0.5;
+    opacity: 0.55;
     cursor: not-allowed;
+    filter: grayscale(0.2);
 }
 
 @media (max-width: 768px) {

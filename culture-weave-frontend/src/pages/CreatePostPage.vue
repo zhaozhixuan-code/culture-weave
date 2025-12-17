@@ -209,7 +209,8 @@ onMounted(async () => {
 #createPostPage {
     min-height: calc(100vh - 200px);
     padding: 32px 8% 48px;
-    background: linear-gradient(180deg, #f8f6ff 0%, #f6fbff 100%);
+    /* 使用全局布局背景，保持色调统一 */
+    background: transparent;
 }
 
 .page-container {

@@ -102,24 +102,17 @@
       </table>
 
       <div class="pagination" v-if="total > 0">
-        <div class="left">共 {{ total }} 条</div>
-        <div class="right">
-          <label>
-            每页
-            <select v-model.number="pagination.pageSize" @change="fetchList(1)">
-              <option :value="10">10</option>
-              <option :value="20">20</option>
-              <option :value="50">50</option>
-            </select>
-            条
-          </label>
-          <button class="btn" :disabled="pagination.current === 1" @click="fetchList(pagination.current - 1)">上一页
-          </button>
-          <span class="pg">{{ pagination.current }} / {{ totalPages }}</span>
-          <button class="btn" :disabled="pagination.current >= totalPages" @click="fetchList(pagination.current + 1)">
-            下一页
-          </button>
-        </div>
+        <a-pagination
+          :current="pagination.current"
+          :page-size="pagination.pageSize"
+          :total="total"
+          :show-size-changer="true"
+          :show-quick-jumper="true"
+          :page-size-options="['10','20','50']"
+          :show-total="paginationTotalText"
+          @change="onPageChange"
+          @showSizeChange="onPageSizeChange"
+        />
       </div>
     </section>
 
@@ -300,6 +293,7 @@ const filters = reactive<{
 
 const pagination = reactive({current: 1, pageSize: 10})
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pagination.pageSize)))
+const paginationTotalText = (t: number) => `共 ${t} 条`
 
 // --- 工具 ---
 let searchTimer: number | null = null
@@ -422,6 +416,18 @@ function onReset() {
   filters.tagsText = ''
   pagination.current = 1
   pagination.pageSize = 10
+  fetchList(1)
+}
+
+// 分页变更：保持与用户管理页一致的交互体验
+function onPageChange(page: number) {
+  pagination.current = page
+  fetchList()
+}
+
+function onPageSizeChange(_page: number, pageSize: number) {
+  pagination.pageSize = pageSize
+  pagination.current = 1
   fetchList(1)
 }
 
@@ -721,6 +727,8 @@ onMounted(async () => {
   margin-top: 12px;
   display: flex;
   gap: 8px;
+  width: 100%;
+  justify-content: flex-end;
 }
 
 .btn {
@@ -811,13 +819,10 @@ onMounted(async () => {
 
 .pagination {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-top: 12px;
-}
-
-.pagination .pg {
-  margin: 0 8px;
+  gap: 12px;
 }
 
 /* 缩略图样式 */

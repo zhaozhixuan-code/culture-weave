@@ -347,9 +347,11 @@ const doLogout = async () => {
   line-height: 1;
 }
 
-/* 渐变主色（可选） */
+/* 渐变主色（使用全局按钮主色变量） */
 .login-btn:deep(.ant-btn-primary) {
-  background: linear-gradient(180deg, var(--primary), var(--primary-strong));
+  background: linear-gradient(135deg, var(--btn-primary-start), var(--btn-primary-end));
+  border-color: var(--btn-primary-border);
+  box-shadow: var(--btn-primary-shadow);
 }
 
 /* —— 响应式 —— */

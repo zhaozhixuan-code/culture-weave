@@ -11,7 +11,7 @@
             <a-form :model="formModel" :rules="rules" ref="formRef" layout="vertical" @finish="onSubmit">
 
                 <a-col :xs="24">
-                    <a-form-item label="封面图片" name="imageFile" required>
+                    <a-form-item label="封面图片" name="imageFile" :required="coverRequired">
                         <div class="upload-section">
                             <a-upload v-model:file-list="fileList" :before-upload="beforeUpload" :max-count="1"
                                 list-type="picture-card" accept="image/*" @remove="handleRemove"
@@ -174,11 +174,13 @@ const formModel = reactive<{
 })
 
 // 表单验证规则
+const coverRequired = computed(() => !isEditMode.value && !hasExistingCover.value)
+
 const rules = computed(() => {
     const base = {
         name: [{ required: true, message: '请输入资源名称', trigger: 'blur' }]
     } as any
-    if (!isEditMode.value && !hasExistingCover.value) {
+    if (coverRequired.value) {
         base.imageFile = [{ required: true, message: '请上传封面图片', trigger: 'change' }]
     }
     return base
@@ -421,7 +423,8 @@ onMounted(async () => {
 #addResourcePage {
     min-height: calc(100vh - 200px);
     padding: 24px 8%;
-    background: #f5f7fb;
+    /* 使用全局布局背景，保持色调统一 */
+    background: transparent;
 }
 
 .form-card {
