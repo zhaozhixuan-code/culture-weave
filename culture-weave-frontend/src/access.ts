@@ -18,10 +18,18 @@ router.beforeEach(async (to, from, next) => {
     firstFetchLoginUser = false;
   }
   const toUrl = to.fullPath
+    // 如果访问的是登录或注册页面，直接放行
+    if (toUrl.startsWith('/user/login') || toUrl.startsWith('/user/register')) {
+        next()
+        return
+    }
   if (toUrl.startsWith('/admin')) {
     if (!loginUser || loginUser.userRole !== 'admin') {
-      message.error('没有权限')
-      next(`/user/login?redirect=${to.fullPath}`)
+        message.error('没有权限，请先登录')
+        // 打开登录弹窗并保存目标路由
+        loginUserStore.openLoginModal(to.fullPath)
+        // 阻止导航，保持在当前页面
+        next(false)
       return
     }
   }

@@ -144,6 +144,7 @@ const GlobalHeader = defineAsyncComponent(() => import('../components/GlobalHead
 #basicLayout .header {
   line-height: normal !important;
   padding: 0 !important;
+
 }
 
 #basicLayout .header {
@@ -152,9 +153,7 @@ const GlobalHeader = defineAsyncComponent(() => import('../components/GlobalHead
   z-index: 10;
   margin-bottom: 16px;
   color: unset;
-  background: var(--header-bg);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  background: #ffffff !important;
   border-bottom: 1px solid var(--header-border);
   box-shadow: 0 4px 20px rgba(15, 35, 95, 0.08);
   transition: box-shadow 0.3s ease, background 0.3s ease;

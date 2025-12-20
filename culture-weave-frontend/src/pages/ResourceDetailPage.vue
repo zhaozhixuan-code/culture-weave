@@ -87,7 +87,7 @@
                                     @click="onDownload">下载资源</a-button>
                                 <a-button v-if="resource.price && resource.price > 0" size="large"
                                     @click="onPurchase">购买授权</a-button>
-                                <a-button v-if="isOwner" danger @click="openDelete">删除资源</a-button>
+                                <a-button v-if="canDelete" danger @click="openDelete">删除资源</a-button>
                                 <a-button v-if="isOwner" @click="onEdit">编辑</a-button>
                             </div>
                         </div>
@@ -273,6 +273,14 @@ const currentUserId = computed(() => loginUserStore.loginUser?.id || null)
 const isOwner = computed(() => {
     if (!currentUserId.value || !resource.value) return false
     return resource.value.userId === currentUserId.value
+})
+// 检查是否为管理员
+const isAdmin = computed(() => {
+    return loginUserStore.loginUser?.userRole === 'admin'
+})
+// 检查是否有删除权限（发布人或管理员）
+const canDelete = computed(() => {
+    return isOwner.value || isAdmin.value
 })
 const canDownload = ref(true) // 简化权限判断，可根据实际业务逻辑调整
 const deleteVisible = ref(false)

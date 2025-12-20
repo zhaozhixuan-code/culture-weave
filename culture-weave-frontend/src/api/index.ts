@@ -5,12 +5,14 @@
 import * as userController from './userController'
 import * as resourcesController from './resourcesController'
 import * as postController from './postController'
+import * as commentController from './commentController'
 import * as healthController from './healthController'
 import * as aiController from './aiController'
 export default {
   userController,
   resourcesController,
   postController,
+  commentController,
   healthController,
   aiController,
 }

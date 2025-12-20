@@ -48,7 +48,6 @@ public class ResourcesServiceImpl extends ServiceImpl<ResourcesMapper, Resources
         implements ResourcesService {
 
 
-
     @Resource
     private FilePictureUpload filePictureUpload;
 
@@ -97,7 +96,7 @@ public class ResourcesServiceImpl extends ServiceImpl<ResourcesMapper, Resources
         resources.setRegion(resourcesAddRequest.getRegion());
         resources.setResourceImgUrl(imagePath);
         resources.setUserId(loginUser.getId());
-        resources.setUserName(resources.getUserName());
+        resources.setUserName(resources.getUserName() == null ? loginUser.getUserName() : resources.getUserName());
         resources.setPrice(resourcesAddRequest.getPrice());
         resources.setUserDescription(resourcesAddRequest.getUserDescription());
         // 如果不等于null，则更新

@@ -8,7 +8,12 @@ export const useLoginUserStore = defineStore('loginUser', () => {
     userName: '未登录',
   })
 
-  // 更改状态
+    // 控制登录弹窗显示
+    const loginModalVisible = ref(false)
+    // 登录成功后需要跳转的路由
+    const redirectPath = ref<string | null>(null)
+
+    // 更改状态
   async function fetchLoginUser() {
     // 测试用户登录，3 秒后登录
     // setTimeout(() => {
@@ -24,6 +29,28 @@ export const useLoginUserStore = defineStore('loginUser', () => {
     loginUser.value = newLoginUser
   }
 
-  // 返回
-  return { loginUser, setLoginUser, fetchLoginUser }
+    // 打开登录弹窗
+    function openLoginModal(path?: string) {
+        if (path) {
+            redirectPath.value = path
+        }
+        loginModalVisible.value = true
+    }
+
+    // 关闭登录弹窗
+    function closeLoginModal() {
+        loginModalVisible.value = false
+        redirectPath.value = null
+    }
+
+    // 返回
+    return {
+        loginUser,
+        setLoginUser,
+        fetchLoginUser,
+        loginModalVisible,
+        redirectPath,
+        openLoginModal,
+        closeLoginModal
+    }
 })

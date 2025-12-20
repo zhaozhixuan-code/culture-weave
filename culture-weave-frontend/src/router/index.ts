@@ -20,6 +20,11 @@ const router = createRouter({
       component: () => import('../pages/user/UserRegisterPage.vue')
     },
     {
+      path: '/user/profile',
+      name: '个人中心',
+      component: () => import('../pages/user/UserProfilePage.vue')
+    },
+    {
       path: '/admin/userManage',
       name: '用户管理',
         component: () => import('../pages/admin/UserManagePage.vue')
@@ -28,6 +33,11 @@ const router = createRouter({
       path: '/admin/resourcesManage',
       name: '资源库管理',
       component: () => import('../pages/admin/ResourcesManagePage.vue')
+    },
+    {
+      path: '/admin/postsManage',
+      name: '社区管理',
+      component: () => import('../pages/admin/PostsManagePage.vue')
     },
     {
       path: '/resources',
@@ -58,6 +68,11 @@ const router = createRouter({
       path: '/creativeCenter/create',
       name: '发布灵感',
       component: () => import('../pages/CreatePostPage.vue')
+    },
+    {
+      path: '/about',
+      name: '关于我们',
+      component: () => import('../pages/AboutPage.vue')
     },
   ]
 })

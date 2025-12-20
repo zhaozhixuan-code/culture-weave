@@ -242,8 +242,6 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post>
             queryWrapper.and(qw -> qw.like("title", searchText)
                     .or()
                     .like("content", searchText)
-                    .or()
-                    .like("userName", searchText)
             );
         }
         queryWrapper.eq(id != null, "id", id);

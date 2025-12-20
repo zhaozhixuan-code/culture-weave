@@ -93,6 +93,7 @@
           <td>{{ formatDateTime(row.createTime) }}</td>
           <td>
             <div class="row-actions">
+              <button class="link" @click="openDetail(row)">详情</button>
               <button class="link" @click="openEdit(row)">编辑</button>
               <button class="link danger" @click="onDelete(row)">删除</button>
             </div>
@@ -207,6 +208,7 @@
 
 <script setup lang="ts">
 import {onMounted, reactive, ref, computed} from 'vue'
+import {useRouter} from 'vue-router'
 import {
   getResourceCategoryList,
   listResourcesByPage,
@@ -271,6 +273,9 @@ type ResourceQueryPayload = {
   userName?: string
   tags?: string[]
 }
+
+// --- 路由 ---
+const router = useRouter()
 
 // --- 状态 ---
 const loading = ref(false)
@@ -483,6 +488,12 @@ function openCreate() {
   imagePreview.value = null
   if (fileInputRef.value) fileInputRef.value.value = ''
   dialogRef.value?.showModal()
+}
+
+function openDetail(row: ResourceRow) {
+  if (row.id) {
+    router.push(`/resources/${row.id}`)
+  }
 }
 
 function openEdit(row: ResourceRow) {
@@ -778,6 +789,14 @@ onMounted(async () => {
   font-size: 12px;
   color: #888;
   margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.4;
+  max-height: 2.8em; /* 2行的高度，约等于 line-height * 2 */
 }
 
 .tags {

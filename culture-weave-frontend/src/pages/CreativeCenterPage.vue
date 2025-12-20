@@ -1,6 +1,7 @@
 <template>
     <div id="creativeCenterPage">
         <section class="hero">
+          <div class="seal"></div>
             <div class="hero-inner">
                 <div class="hero-copy">
                     <p class="overline">Community / Creative Hub</p>
@@ -16,9 +17,9 @@
                     </div>
                 </div>
                 <div class="hero-visual">
-                    <div class="orb orb-1"></div>
-                    <div class="orb orb-2"></div>
-                    <div class="orb orb-3"></div>
+                  <div class="cultural-pattern pattern-1"></div>
+                  <div class="cultural-pattern pattern-2"></div>
+                  <div class="cultural-pattern pattern-3"></div>
                 </div>
             </div>
         </section>
@@ -49,83 +50,44 @@
                     <a-button type="primary" size="large" @click="handleCreate">立即发布</a-button>
                 </div>
 
-                <transition-group v-else name="fade" tag="div" class="post-grid">
-                    <article v-for="post in posts" :key="post.id" class="post-card">
-                        <div class="post-cover" v-if="post.pictureUrl">
-                            <img :src="post.pictureUrl" alt="post cover" loading="lazy" @error="onCoverError($event)" />
-                        </div>
-                        <div v-else class="post-cover placeholder">
-                            <HighlightOutlined />
-                            <span>创意灵感</span>
+                <div v-else class="post-masonry">
+                    <article v-for="post in posts" :key="post.id" class="post-card" @click="handlePostClick(post)">
+                        <div class="post-cover">
+                            <img v-if="post.pictureUrl" :src="post.pictureUrl" alt="post cover" loading="lazy" 
+                                @error="onCoverError($event)" />
+                            <div v-else class="placeholder">
+                                <HighlightOutlined />
+                                <span>创意灵感</span>
+                            </div>
                         </div>
 
                         <div class="post-body">
-                            <div class="post-meta">
-                                <div class="author">
-                                    <img v-if="post.userVO?.userAvatar" :src="post.userVO.userAvatar" alt="avatar"
-                                        class="avatar" />
-                                    <div v-else class="avatar placeholder-avatar">
-                                        {{ abbreviation(post.userVO?.userName) }}
-                                    </div>
-                                    <div class="author-info">
-                                        <span class="name">{{ post.userVO?.userName || '匿名创作者' }}</span>
-                                        <span class="time">
-                                            <ClockCircleOutlined />
-                                            {{ formatTime(post.createTime) }}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="meta-tags">
-                                    <span v-if="authorizationLabel(post.authorization)"
-                                        :class="['badge', post.authorization === 2 ? '' : 'outline']">
-                                        {{ authorizationLabel(post.authorization) }}
-                                    </span>
-                                    <span v-if="statementLabel(post.statement)"
-                                        :class="['badge', 'neutral', post.statement === 2 ? 'outline' : '']">
-                                        {{ statementLabel(post.statement) }}
-                                    </span>
-                                </div>
-                            </div>
-
                             <h3 class="post-title">{{ post.title || '未命名创作' }}</h3>
-                            <p class="post-content">
-                                {{ excerpt(post.content) }}
-                            </p>
-                        </div>
-
-                        <footer class="post-footer">
-                            <div class="footer-left">
-                                <a-button type="link" @click="toggleExpand(post)">
-                                    {{ expandedPostIds.has(post.id) ? '收起' : '展开全文' }}
-                                </a-button>
+                            <div class="post-header-info">
+                                <img v-if="post.userVO?.userAvatar" :src="post.userVO.userAvatar" alt="avatar"
+                                    class="avatar" />
+                                <div v-else class="avatar placeholder-avatar">
+                                    {{ abbreviation(post.userVO?.userName) }}
+                                </div>
+                                <span class="author-name">{{ post.userVO?.userName || '匿名创作者' }}</span>
                             </div>
-                            <div class="footer-right">
-                                <a-popconfirm v-if="canManage(post)" title="确定删除这篇创作吗？" ok-text="删除" cancel-text="取消"
-                                    @confirm="() => removePost(post)">
-                                    <a-button type="link" danger>
-                                        <DeleteOutlined />
-                                        删除
-                                    </a-button>
-                                </a-popconfirm>
-                            </div>
-                        </footer>
-
-                        <div v-if="expandedPostIds.has(post.id)" class="post-expanded">
-                            <a-typography-paragraph>
-                                {{ post.content || '暂无正文内容' }}
-                            </a-typography-paragraph>
                         </div>
                     </article>
-                </transition-group>
+                </div>
             </a-spin>
 
             <div v-if="total > pagination.pageSize" class="pagination-wrapper">
                 <a-pagination v-model:current="pagination.current" v-model:page-size="pagination.pageSize"
-                    :total="total" :show-size-changer="true" :page-size-options="['6', '12', '18']"
+                    :total="total" :show-size-changer="true" :page-size-options="['20', '40', '60']"
                     @change="onPageChange" @show-size-change="onPageSizeChange" show-total />
             </div>
         </div>
 
+        <!-- 帖子详情弹窗 -->
+        <PostDetailModal v-model:open="detailModalOpen" :post-id="selectedPostId" @close="handleDetailModalClose" />
+
+        <!-- 登录弹窗 -->
+        <LoginModal v-model:open="loginModalVisible" />
     </div>
 </template>
 
@@ -140,11 +102,12 @@ import {
     UndoOutlined,
     CarryOutOutlined,
     HighlightOutlined,
-    ClockCircleOutlined,
-    DeleteOutlined
+    ClockCircleOutlined
 } from '@ant-design/icons-vue'
-import { listResourcesVoByPage1, deletePost } from '../api/postController'
+import { listResourcesVoByPage1 } from '../api/postController'
 import { useLoginUserStore } from '../stores/useLoginUserStore'
+import PostDetailModal from '../components/PostDetailModal.vue'
+import LoginModal from '../components/LoginModal.vue'
 
 type PostVO = API.PostVO
 
@@ -155,18 +118,33 @@ const loading = ref(false)
 const posts = ref<PostVO[]>([])
 const total = ref(0)
 
+const detailModalOpen = ref(false)
+const selectedPostId = ref<number | null>(null)
+
 const filters = reactive({
     searchText: ''
 })
 
 const pagination = reactive({
     current: 1,
-    pageSize: 6
+    pageSize: 20
 })
 
 const expandedPostIds = ref(new Set<number | undefined>())
 
 const currentUserId = computed(() => loginUserStore.loginUser?.id || null)
+
+// 登录弹窗状态
+const loginModalVisible = computed({
+  get: () => loginUserStore.loginModalVisible,
+  set: (value) => {
+    if (!value) {
+      loginUserStore.closeLoginModal()
+    } else {
+      loginUserStore.loginModalVisible = true
+    }
+  }
+})
 
 let searchTimer: number | null = null
 
@@ -176,7 +154,8 @@ async function handleCreate() {
     }
     if (!currentUserId.value) {
         message.warning('请先登录后再发布创作')
-        router.push('/user/login')
+        // 打开登录弹窗，登录成功后跳转到创建页面
+        loginUserStore.openLoginModal('/creativeCenter/create')
         return
     }
     router.push('/creativeCenter/create')
@@ -194,9 +173,9 @@ function formatTime(value?: string) {
     return date.toLocaleString()
 }
 
-function excerpt(content?: string) {
+function excerpt(content?: string, maxLength: number = 120) {
     if (!content) return '这位创作者暂未留下文字描述。'
-    return content.length > 120 ? `${content.slice(0, 120)}...` : content
+    return content.length > maxLength ? `${content.slice(0, maxLength)}...` : content
 }
 
 function authorizationLabel(value?: number | null) {
@@ -220,11 +199,6 @@ function toggleExpand(post: PostVO) {
         set.add(post.id)
     }
     expandedPostIds.value = new Set(set)
-}
-
-function canManage(post: PostVO) {
-    if (!post?.userVO?.id || !currentUserId.value) return false
-    return post.userVO.id === currentUserId.value
 }
 
 async function fetchPosts(page?: number) {
@@ -288,26 +262,34 @@ function onCoverError(event: Event) {
     const img = event.target as HTMLImageElement
     if (img) {
         img.style.display = 'none'
-        const placeholder = img.nextElementSibling as HTMLElement
-        if (placeholder) placeholder.style.display = 'flex'
+        const parent = img.parentElement
+        if (parent) {
+            let placeholder = parent.querySelector('.placeholder') as HTMLElement
+            if (!placeholder) {
+                placeholder = document.createElement('div')
+                placeholder.className = 'placeholder'
+                const icon = document.createElement('div')
+                icon.innerHTML = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'
+                const text = document.createElement('span')
+                text.textContent = '创意灵感'
+                placeholder.appendChild(icon)
+                placeholder.appendChild(text)
+                parent.appendChild(placeholder)
+            }
+            placeholder.style.display = 'flex'
+        }
     }
 }
 
-async function removePost(post: PostVO) {
+function handlePostClick(post: PostVO) {
     if (!post.id) return
-    try {
-        const res = await deletePost({ id: post.id })
-        const responseData = (res as any)?.data as API.BaseResponseBoolean
-        if (responseData?.code === 0) {
-            message.success('已删除该创作')
-            fetchPosts(1)
-        } else {
-            message.error(responseData?.message || '删除失败，请稍后再试')
-        }
-    } catch (error) {
-        console.error('删除创作失败', error)
-        message.error('删除失败，请稍后再试')
-    }
+    selectedPostId.value = post.id
+    detailModalOpen.value = true
+}
+
+function handleDetailModalClose() {
+    selectedPostId.value = null
+    detailModalOpen.value = false
 }
 
 onMounted(async () => {
@@ -319,99 +301,338 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* 非遗文化主题样式 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600&display=swap');
+
 #creativeCenterPage {
     min-height: calc(100vh - 200px);
     padding: 0;
-    /* 使用全局布局背景，保持色调统一 */
-    background: transparent;
+  background: linear-gradient(180deg,
+  #fcf9f4 0%,
+  #fff 100%);
 }
 
+/* Hero部分 - 非遗文化风格 */
 .hero {
-    padding: 56px 8% 40px;
+  padding: 100px 8% 80px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg,
+  rgba(244, 237, 232, 0.98) 0%,
+  rgba(251, 247, 240, 0.95) 100%),
+  url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23d4a76a' fill-opacity='0.06' fill-rule='evenodd'/%3E%3C/svg%3E");
+  border-bottom: 1px solid rgba(212, 167, 106, 0.2);
+  margin-bottom: 40px;
+  position: relative;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg,
+  #b8860b 0%,
+  #d4a76a 25%,
+  #a0522d 50%,
+  #8b4513 75%,
+  #654321 100%);
+  z-index: 1;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+  border: 1px solid rgba(212, 167, 106, 0.15);
+  pointer-events: none;
+  border-radius: 4px;
+  z-index: 0;
 }
 
 .hero-inner {
-    max-width: 1800px;
+  max-width: 1200px;
     margin: 0 auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 40px;
+  gap: 60px;
+  position: relative;
+  z-index: 2;
 }
 
 .hero-copy {
-    max-width: 620px;
+  max-width: 600px;
+  animation: fadeInUp 1s ease-out;
 }
 
-.overline {
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    font-size: 12px;
-    color: #7f8ac5;
-    margin-bottom: 8px;
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-copy .overline {
+  display: inline-block;
+  padding: 8px 20px;
+  background: rgba(164, 123, 67, 0.1);
+  backdrop-filter: blur(8px);
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  color: #8b4513;
+  margin-bottom: 24px;
+  border: 1px solid rgba(164, 123, 67, 0.2);
+  position: relative;
+  font-family: 'Noto Serif SC', serif;
+}
+
+.hero-copy .overline::before {
+  content: '「';
+  position: absolute;
+  left: -10px;
+  color: #d4a76a;
+}
+
+.hero-copy .overline::after {
+  content: '」';
+  position: absolute;
+  right: -10px;
+  color: #d4a76a;
 }
 
 .hero-copy h1 {
-    font-size: 42px;
-    margin: 0 0 12px 0;
-    color: #1a2332;
+  font-size: 3.2rem;
+  margin: 0 0 24px 0;
+  color: #2c1810;
     font-weight: 700;
+  line-height: 1.2;
+  font-family: 'Noto Serif SC', serif;
+  position: relative;
+  padding-left: 24px;
+  border-left: 6px solid #d4a76a;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.hero-copy h1::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 24px;
+  width: 100px;
+  height: 2px;
+  background: linear-gradient(90deg, #d4a76a, transparent);
 }
 
 .sub-title {
-    font-size: 16px;
-    color: #505b7a;
-    line-height: 1.7;
-    margin-bottom: 24px;
+  font-size: 18px;
+  color: #5d4037;
+  line-height: 1.8;
+  margin-bottom: 36px;
+  font-weight: 400;
+  padding: 24px;
+  background: rgba(255, 253, 249, 0.9);
+  border-radius: 8px;
+  border: 1px solid rgba(212, 167, 106, 0.3);
+  box-shadow: 0 4px 20px rgba(212, 167, 106, 0.1);
+  position: relative;
+  font-family: 'Noto Sans SC', sans-serif;
 }
 
-.hero-actions {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
+.sub-title::before {
+  content: '✦';
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #d4a76a;
+  font-size: 20px;
+}
+
+.hero-actions :deep(.ant-btn-primary) {
+  height: 52px;
+  padding: 0 32px;
+    font-size: 16px;
+  font-weight: 500;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #a0522d, #8b4513);
+  border: none;
+  box-shadow: 0 8px 24px rgba(139, 69, 19, 0.25);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+
+.hero-actions :deep(.ant-btn-primary)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s;
+}
+
+.hero-actions :deep(.ant-btn-primary:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(139, 69, 19, 0.35);
+  background: linear-gradient(135deg, #8b4513, #654321);
+}
+
+.hero-actions :deep(.ant-btn-primary:hover)::before {
+  left: 100%;
 }
 
 .hero-visual {
     flex: 1;
     position: relative;
-    min-height: 220px;
+  min-height: 320px;
+  animation: fadeInRight 1.2s ease-out 0.3s both;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.orb {
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 非遗文化装饰元素 */
+.cultural-pattern {
     position: absolute;
-    border-radius: 50%;
-    filter: blur(0);
     opacity: 0.8;
+  z-index: 1;
 }
 
-.orb-1 {
-    width: 220px;
-    height: 220px;
-    background: radial-gradient(circle at top left, rgba(61, 107, 255, 0.9), rgba(61, 107, 255, 0));
-    top: 0;
-    right: 20%;
+.pattern-1 {
+  width: 120px;
+  height: 120px;
+  top: 10%;
+  right: 15%;
+  background-image: url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M60 10c27.614 0 50 22.386 50 50s-22.386 50-50 50S10 87.614 10 60 32.386 10 60 10zm0 10c-22.091 0-40 17.909-40 40s17.909 40 40 40 40-17.909 40-40-17.909-40-40-40z' fill='none' stroke='%23d4a76a' stroke-width='2' stroke-opacity='0.3'/%3E%3Cpath d='M60 30c16.569 0 30 13.431 30 30S76.569 90 60 90 30 76.569 30 60s13.431-30 30-30z' fill='none' stroke='%23a0522d' stroke-width='2' stroke-opacity='0.2'/%3E%3C/svg%3E");
+  animation: rotate 30s linear infinite;
 }
 
-.orb-2 {
-    width: 260px;
-    height: 260px;
-    background: radial-gradient(circle at center, rgba(255, 138, 128, 0.8), rgba(255, 138, 128, 0));
-    bottom: 0;
-    right: 0;
-}
-
-.orb-3 {
-    width: 180px;
-    height: 180px;
-    background: radial-gradient(circle at center, rgba(130, 211, 255, 0.8), rgba(130, 211, 255, 0));
-    top: 20%;
+.pattern-2 {
+  width: 80px;
+  height: 80px;
+  bottom: 20%;
     left: 10%;
+  background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M40 10c16.542 0 30 13.458 30 30S56.542 70 40 70 10 56.542 10 40s13.458-30 30-30zm0 5c13.807 0 25 11.193 25 25S53.807 65 40 65 15 53.807 15 40 26.193 15 40 15z' fill='none' stroke='%238b4513' stroke-width='2' stroke-opacity='0.2'/%3E%3Ccircle cx='40' cy='40' r='15' fill='none' stroke='%23d4a76a' stroke-width='2' stroke-opacity='0.2'/%3E%3C/svg%3E");
+  animation: rotateReverse 40s linear infinite;
 }
 
+.pattern-3 {
+  width: 100px;
+  height: 100px;
+  top: 40%;
+  left: 20%;
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 5c24.853 0 45 20.147 45 45S74.853 95 50 95 5 74.853 5 50 25.147 5 50 5zm0 10c-19.33 0-35 15.67-35 35s15.67 35 35 35 35-15.67 35-35-15.67-35-35-35z' fill='none' stroke='%23654321' stroke-width='2' stroke-opacity='0.2'/%3E%3Cpath d='M50 20c16.542 0 30 13.458 30 30S66.542 80 50 80 20 66.542 20 50s13.458-30 30-30z' fill='none' stroke='%23b8860b' stroke-width='2' stroke-opacity='0.2'/%3E%3C/svg%3E");
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes rotateReverse {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(20px, -20px) scale(1.05);
+  }
+  66% {
+    transform: translate(-15px, 15px) scale(0.95);
+  }
+}
+
+/* 印章效果 */
+.seal {
+  position: absolute;
+  top: 40px;
+  right: 60px;
+  width: 80px;
+  height: 80px;
+  background: rgba(164, 0, 0, 0.9);
+  border-radius: 4px;
+  transform: rotate(15deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 3;
+}
+
+.seal::before {
+  content: '非遗';
+  color: rgba(255, 255, 255, 0.9);
+  font-family: 'Noto Serif SC', serif;
+  font-size: 24px;
+  font-weight: bold;
+  letter-spacing: 4px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.seal::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  right: 5px;
+  bottom: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+/* 页面容器 */
 .page-container {
-    padding: 0 8% 48px;
+  padding: 32px;
     max-width: 1800px;
-    margin: 0 auto;
+  margin: -20px auto 48px;
+  background: rgba(255, 253, 249, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(212, 167, 106, 0.15);
+  position: relative;
+  z-index: 2;
 }
 
 .toolbar {
@@ -428,12 +649,13 @@ onMounted(async () => {
     min-width: 260px;
     position: relative;
     background: #fff;
-    border-radius: 999px;
+  border-radius: 8px;
     padding: 12px 18px;
     display: flex;
     align-items: center;
     gap: 12px;
-    box-shadow: 0 10px 24px rgba(61, 107, 255, 0.12);
+  box-shadow: 0 4px 16px rgba(139, 69, 19, 0.12);
+  border: 1px solid rgba(212, 167, 106, 0.3);
 }
 
 .search-box input {
@@ -442,16 +664,17 @@ onMounted(async () => {
     outline: none;
     font-size: 15px;
     background: transparent;
+  font-family: 'Noto Sans SC', sans-serif;
 }
 
 .search-icon {
-    color: #3d6bff;
+  color: #8b4513;
     font-size: 18px;
 }
 
 .clear-search {
     border: none;
-    background: rgba(0, 0, 0, 0.05);
+  background: rgba(139, 69, 19, 0.08);
     width: 26px;
     height: 26px;
     border-radius: 50%;
@@ -461,16 +684,22 @@ onMounted(async () => {
     align-items: center;
     justify-content: center;
     transition: background 0.2s ease;
+  color: #8b4513;
 }
 
 .clear-search:hover {
-    background: rgba(0, 0, 0, 0.1);
+  background: rgba(139, 69, 19, 0.15);
 }
 
 .toolbar-actions {
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+.toolbar-actions :deep(.ant-btn) {
+  border-color: #d4a76a;
+  color: #8b4513;
 }
 
 .empty-state {
@@ -480,19 +709,19 @@ onMounted(async () => {
     justify-content: center;
     padding: 60px 20px;
     text-align: center;
-    color: #6a7a99;
+  color: #8b4513;
 }
 
 .empty-icon {
     width: 90px;
     height: 90px;
     border-radius: 50%;
-    background: rgba(61, 107, 255, 0.12);
+  background: rgba(212, 167, 106, 0.15);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 36px;
-    color: #3d6bff;
+  color: #8b4513;
     margin-bottom: 16px;
 }
 
@@ -500,175 +729,146 @@ onMounted(async () => {
     font-size: 20px;
     font-weight: 600;
     margin: 0 0 8px 0;
+  color: #2c1810;
+  font-family: 'Noto Serif SC', serif;
 }
 
 .empty-hint {
     font-size: 14px;
     margin-bottom: 16px;
+  color: #5d4037;
+  font-family: 'Noto Sans SC', sans-serif;
 }
 
-.post-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px;
+.empty-state :deep(.ant-btn-primary) {
+  background: linear-gradient(135deg, #a0522d, #8b4513);
+  border: none;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+
+/* 瀑布流布局 */
+.post-masonry {
+    column-count: 6;
+    column-gap: 16px;
+    padding: 0;
+    column-fill: balance;
 }
 
 .post-card {
     background: #fff;
-    border-radius: 20px;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 18px 36px rgba(26, 35, 50, 0.12);
-    display: flex;
-    flex-direction: column;
+    box-shadow: 0 2px 8px rgba(139, 69, 19, 0.08);
+    display: inline-block;
+    width: 100%;
+    margin-bottom: 16px;
+    break-inside: avoid;
     position: relative;
-    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    border: 1px solid rgba(212, 167, 106, 0.15);
 }
 
 .post-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 24px 40px rgba(26, 35, 50, 0.18);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(139, 69, 19, 0.15);
+    border-color: rgba(212, 167, 106, 0.3);
 }
 
 .post-cover {
     position: relative;
     width: 100%;
-    height: 200px;
     overflow: hidden;
-    background: linear-gradient(135deg, #eff3ff, #ffeef1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    color: #9aa4b8;
-    gap: 6px;
-    font-size: 14px;
+    background: linear-gradient(135deg, #fcf9f4, #f5efe8);
+    border-radius: 12px 12px 0 0;
+    margin-bottom: 0;
 }
 
 .post-cover img {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    height: auto;
     display: block;
+    object-fit: cover;
+}
+
+.post-cover .placeholder {
+    width: 100%;
+    min-height: 200px;
+    padding: 40px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    color: #8b4513;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.post-cover .placeholder :deep(.anticon) {
+    font-size: 48px;
+    opacity: 0.6;
 }
 
 .post-body {
-    padding: 20px 24px 0;
+    padding: 12px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    flex: 1;
+    gap: 8px;
+    position: relative;
 }
 
-.post-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-}
-
-.author {
+.post-header-info {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 6px;
 }
 
 .avatar {
-    width: 44px;
-    height: 44px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     object-fit: cover;
-    background: rgba(61, 107, 255, 0.2);
+    background: rgba(212, 167, 106, 0.2);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: #1a2332;
+    color: #2c1810;
     font-weight: 600;
+    font-size: 11px;
+    flex-shrink: 0;
+    font-family: 'Noto Sans SC', sans-serif;
 }
 
-.author-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+.placeholder-avatar {
+    background: rgba(212, 167, 106, 0.2);
 }
 
-.author-info .name {
-    font-size: 14px;
-    font-weight: 600;
-    color: #1a2332;
-}
-
-.author-info .time {
+.author-name {
     font-size: 12px;
-    color: #6a7a99;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.meta-tags {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-}
-
-.badge {
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: rgba(61, 107, 255, 0.15);
-    color: #3d6bff;
-    font-size: 12px;
-}
-
-.badge.outline {
-    background: rgba(255, 138, 128, 0.12);
-    color: #ff6b6b;
-}
-
-.badge.neutral {
-    background: rgba(93, 118, 203, 0.15);
-    color: #5d76cb;
-}
-
-.badge.neutral.outline {
-    background: rgba(255, 171, 64, 0.15);
-    color: #ff8f3d;
+    font-weight: 400;
+    color: #333;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: 'Noto Sans SC', sans-serif;
+    line-height: 1.2;
 }
 
 .post-title {
-    font-size: 20px;
-    font-weight: 700;
-    margin: 0;
-    color: #1a2332;
-}
-
-.post-content {
     font-size: 14px;
-    color: #4f5b76;
-    line-height: 1.8;
+    font-weight: 400;
     margin: 0;
+    color: #333;
+    line-height: 1.5;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    font-family: 'Noto Sans SC', sans-serif;
+    word-break: break-word;
 }
 
-.post-footer {
-    padding: 0 24px 18px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-}
-
-.post-expanded {
-    padding: 0 24px 24px;
-    color: #444f6b;
-    font-size: 14px;
-    line-height: 1.8;
-    background: linear-gradient(180deg, rgba(61, 107, 255, 0.06) 0%, rgba(132, 91, 255, 0.06) 100%);
-}
 
 .pagination-wrapper {
     margin-top: 32px;
@@ -676,41 +876,169 @@ onMounted(async () => {
     justify-content: center;
 }
 
-.fade-enter-active,
-.fade-leave-active {
-    transition: all 0.4s ease;
+.pagination-wrapper :deep(.ant-pagination-item) {
+  border-color: #d4a76a;
 }
 
-.fade-enter-from,
-.fade-leave-to {
-    opacity: 0;
-    transform: translateY(12px);
+.pagination-wrapper :deep(.ant-pagination-item a) {
+  color: #8b4513;
+}
+
+.pagination-wrapper :deep(.ant-pagination-item-active) {
+  background: #8b4513;
+  border-color: #8b4513;
+}
+
+.pagination-wrapper :deep(.ant-pagination-item-active a) {
+  color: #fff;
+}
+
+.pagination-wrapper :deep(.ant-select-selector) {
+  border-color: #d4a76a !important;
+}
+
+
+/* 响应式设计 */
+@media (max-width: 1600px) {
+    .post-masonry {
+        column-count: 5;
+        column-gap: 16px;
+    }
+}
+
+@media (max-width: 1400px) {
+    .post-masonry {
+        column-count: 4;
+        column-gap: 16px;
+    }
 }
 
 @media (max-width: 1024px) {
-    .hero-inner {
-        flex-direction: column;
-        align-items: flex-start;
-    }
+  .hero {
+    padding: 80px 5% 60px;
+  }
 
-    .hero-visual {
-        align-self: stretch;
-        min-height: 180px;
+  .hero-copy h1 {
+    font-size: 2.6rem;
+  }
+
+  .seal {
+    width: 60px;
+    height: 60px;
+    top: 30px;
+    right: 40px;
+  }
+
+  .seal::before {
+    font-size: 18px;
+  }
+
+  .hero-visual {
+    min-height: 280px;
+  }
+
+  .pattern-1 {
+    width: 100px;
+    height: 100px;
+  }
+
+  .pattern-2 {
+    width: 60px;
+    height: 60px;
+  }
+
+  .pattern-3 {
+    width: 80px;
+    height: 80px;
+  }
+
+  .post-masonry {
+        column-count: 3;
+        column-gap: 12px;
+    }
+    
+    .post-card {
+        margin-bottom: 12px;
     }
 }
 
 @media (max-width: 768px) {
-    .toolbar {
+  .hero {
+    padding: 60px 4% 40px;
+  }
+
+  .hero-inner {
+        flex-direction: column;
+    gap: 40px;
+  }
+
+  .hero-copy {
+    text-align: center;
+    max-width: 100%;
+  }
+
+  .hero-copy h1 {
+    font-size: 2.2rem;
+    padding-left: 0;
+    border-left: none;
+    text-align: center;
+    border-bottom: 3px solid #d4a76a;
+    padding-bottom: 12px;
+  }
+
+  .hero-copy h1::after {
+    display: none;
+  }
+
+  .sub-title::before {
+    left: 50%;
+    top: -12px;
+    transform: translateX(-50%);
+  }
+
+  .seal {
+    position: relative;
+    top: 0;
+    right: 0;
+    margin: 0 auto 20px;
+    transform: rotate(0);
+  }
+
+  .cultural-pattern {
+    opacity: 0.3;
+    }
+
+  .hero-visual {
+    min-height: 200px;
+  }
+
+  .toolbar {
         flex-direction: column;
         align-items: stretch;
     }
 
-    .toolbar-actions {
+  .toolbar-actions {
         justify-content: flex-end;
     }
 
-    .post-grid {
-        grid-template-columns: 1fr;
+  .post-masonry {
+        column-count: 2;
+        column-gap: 12px;
+    }
+
+    .post-card {
+        margin-bottom: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .post-masonry {
+        column-count: 1;
+        column-gap: 0;
+    }
+    
+    .post-card {
+        margin-bottom: 16px;
     }
 }
 </style>

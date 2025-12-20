@@ -7,7 +7,13 @@
       </RouterLink>
 
       <div class="nav-wrapper">
-        <a-menu v-model:selectedKeys="current" mode="horizontal" :items="items" @click="doMenuClick" />
+        <a-menu 
+          v-model:selectedKeys="current" 
+          mode="horizontal" 
+          :items="items" 
+          @click="doMenuClick"
+          :triggerSubMenuAction="'hover'"
+        />
       </div>
 
       <div class="user-login-status">
@@ -19,6 +25,10 @@
             </ASpace>
             <template #overlay>
               <a-menu>
+                <a-menu-item @click="goToProfile">
+                  <UserOutlined />
+                  个人中心
+                </a-menu-item>
                 <a-menu-item @click="doLogout">
                   <LogoutOutlined />
                   退出登录
@@ -29,10 +39,12 @@
         </div>
 
         <div v-else>
-          <a-button class="login-btn" type="primary" href="/user/login">登录</a-button>
+          <a-button class="login-btn" type="primary" @click="openLoginModal">登录</a-button>
         </div>
       </div>
     </div>
+
+    <LoginModal v-model:open="loginModalVisible"/>
   </div>
 </template>
 
@@ -44,7 +56,8 @@ import {
   UserOutlined,
   FolderOutlined,
   EditOutlined,
-  SettingOutlined
+  SettingOutlined,
+  InfoCircleOutlined
 } from '@ant-design/icons-vue'
 import type { MenuProps } from 'ant-design-vue'
 import { message } from 'ant-design-vue'
@@ -52,9 +65,27 @@ import { useRouter, useRoute } from 'vue-router'
 import { healthCheck } from '../api/healthController'
 import { useLoginUserStore } from '../stores/useLoginUserStore'
 import { userLogout } from '../api/userController'
+import LoginModal from './LoginModal.vue'
 
 const loginUserStore = useLoginUserStore()
 loginUserStore.fetchLoginUser()
+
+// 使用 store 中的登录弹窗状态
+const loginModalVisible = computed({
+  get: () => loginUserStore.loginModalVisible,
+  set: (value) => {
+    if (!value) {
+      loginUserStore.closeLoginModal()
+    } else {
+      // 如果外部直接设置 visible 为 true，也打开弹窗（但不设置 redirectPath）
+      loginUserStore.loginModalVisible = true
+    }
+  }
+})
+
+const openLoginModal = () => {
+  loginUserStore.openLoginModal()
+}
 
 const originItems = [
   {
@@ -75,31 +106,63 @@ const originItems = [
     label: '社区',
     title: '社区',
   },
-
   {
-    key: '/admin/userManage',
-    icon: () => h(SettingOutlined),
-    label: '用户管理',
-    title: '用户管理',
+    key: '/about',
+    icon: () => h(InfoCircleOutlined),
+    label: '关于我们',
+    title: '关于我们',
   },
   {
-    key: '/admin/resourcesManage',
+    key: 'admin',
     icon: () => h(SettingOutlined),
-    label: '资源库管理',
-    title: '资源库管理',
+    label: '管理',
+    title: '管理',
+    children: [
+      {
+        key: '/admin/userManage',
+        icon: () => h(UserOutlined),
+        label: '用户管理',
+        title: '用户管理',
+      },
+      {
+        key: '/admin/resourcesManage',
+        icon: () => h(FolderOutlined),
+        label: '资源库管理',
+        title: '资源库管理',
+      },
+      {
+        key: '/admin/postsManage',
+        icon: () => h(EditOutlined),
+        label: '社区管理',
+        title: '社区管理',
+      },
+    ],
   },
 ]
 
 const filterMenus = (menus: MenuProps['items'] = []) => {
+  const loginUser = loginUserStore.loginUser
+  const isAdmin = loginUser && loginUser.userRole === 'admin'
+  
   return (menus ?? []).filter((menu): menu is NonNullable<typeof menu> => {
     if (!menu) return false
     const key = menu.key
-    if (typeof key === 'string' && key.startsWith('/admin')) {
-      const loginUser = loginUserStore.loginUser
-      if (!loginUser || loginUser.userRole !== 'admin') {
+    
+    // 如果是管理菜单，需要检查是否是管理员
+    if (key === 'admin') {
+      if (!isAdmin) {
         return false
       }
+      // 如果是submenu，也需要过滤其children
+      if ('children' in menu && menu.children) {
+        menu.children = menu.children.filter((child: any) => {
+          return child !== null && child !== undefined
+        })
+      }
+      return true
     }
+    
+    // 其他菜单项正常显示
     return true
   })
 }
@@ -122,12 +185,16 @@ const doMenuClick = ({ key }: { key: string }) => {
 
 healthCheck()
 
+const goToProfile = () => {
+  router.push('/user/profile')
+}
+
 const doLogout = async () => {
   const res = await userLogout()
   if (res.data.code === 0) {
     loginUserStore.setLoginUser({ userName: '未登录' })
     message.success('退出登录成功')
-    await router.push('/user/login')
+    await router.push('/')
   } else {
     message.error('退出登录失败，' + res.data.message)
   }
@@ -138,31 +205,40 @@ const doLogout = async () => {
 /* 主题变量 */
 :root {
   --header-bg: rgba(255, 255, 255, 0.9);
-  --header-border: rgba(228, 233, 242, 0.9);
-  --card-shadow: 0 4px 20px rgba(15, 35, 95, 0.08);
-  --brand-color: #101828;
-  --muted: #667085;
-  --primary: #1677ff;
-  --primary-strong: #145bcb;
-  --menu-active: #0b59ff;
+  --header-border: rgba(212, 167, 106, 0.3);
+  --card-shadow: 0 4px 20px rgba(212, 167, 106, 0.15);
+  --brand-color: #2c1810;
+  --muted: #5d4037;
+  --primary: #d4a76a;
+  --primary-strong: #8b4513;
+  --menu-active: #8b4513;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --header-bg: rgba(23, 23, 23, 0.7);
-    --header-border: rgba(255, 255, 255, 0.08);
-    --card-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --header-border: rgba(212, 167, 106, 0.3);
+    --card-shadow: 0 8px 24px rgba(212, 167, 106, 0.2);
     --brand-color: #f2f4f7;
-    --muted: #98a2b3;
-    --primary: #3b82f6;
-    --primary-strong: #2563eb;
-    --menu-active: #60a5fa;
+    --muted: #d4a76a;
+    --primary: #d4a76a;
+    --primary-strong: #8b4513;
+    --menu-active: #d4a76a;
+  }
+
+  .nav-wrapper :deep(.ant-menu-item-selected) {
+    background: linear-gradient(135deg, rgba(212, 167, 106, 0.2), rgba(139, 69, 19, 0.15)) !important;
+  }
+
+  .nav-wrapper :deep(.ant-menu-item-selected:hover) {
+    background: linear-gradient(135deg, rgba(212, 167, 106, 0.25), rgba(139, 69, 19, 0.2)) !important;
   }
 }
 
 .globalHeader {
   width: 100%;
   background: transparent;
+
 }
 
 /* 与 BasicLayout 宽度对齐 */
@@ -213,7 +289,7 @@ const doLogout = async () => {
   font-size: 22px;
   font-weight: 700;
   letter-spacing: 0.8px;
-  background: linear-gradient(135deg, #3d6bff, #845bff);
+  background: linear-gradient(90deg, #b8860b 0%, #d4a76a 25%, #a0522d 50%, #8b4513 75%, #654321 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -221,7 +297,7 @@ const doLogout = async () => {
 }
 
 .brand:hover .title {
-  background: linear-gradient(135deg, #2d5ae6, #7445e6);
+  background: linear-gradient(90deg, #a0522d 0%, #8b4513 25%, #654321 50%, #8b4513 75%, #a0522d 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -259,7 +335,7 @@ const doLogout = async () => {
 .nav-wrapper :deep(.ant-menu-horizontal > .ant-menu-item:hover),
 .nav-wrapper :deep(.ant-menu-horizontal > .ant-menu-submenu:hover) {
   color: var(--menu-active);
-  background: rgba(61, 107, 255, 0.06);
+  background: rgba(212, 167, 106, 0.1);
   border-radius: 8px;
 }
 
@@ -273,10 +349,23 @@ const doLogout = async () => {
 .nav-wrapper :deep(.ant-menu-item-selected) {
   font-weight: 600;
   color: var(--menu-active) !important;
+  background: linear-gradient(135deg, rgba(212, 167, 106, 0.15), rgba(139, 69, 19, 0.1)) !important;
+  border-radius: 8px;
+  position: relative;
 }
 
 .nav-wrapper :deep(.ant-menu-item-selected::after) {
   border-bottom-color: var(--menu-active) !important;
+  border-bottom-width: 2px;
+}
+
+.nav-wrapper :deep(.ant-menu-item-selected .anticon) {
+  color: var(--menu-active) !important;
+}
+
+/* 增强选中状态的视觉效果 */
+.nav-wrapper :deep(.ant-menu-item-selected:hover) {
+  background: linear-gradient(135deg, rgba(212, 167, 106, 0.2), rgba(139, 69, 19, 0.15)) !important;
 }
 
 .user-login-status {
@@ -304,9 +393,9 @@ const doLogout = async () => {
 }
 
 .user-toggle:hover {
-  background: rgba(61, 107, 255, 0.08);
-  box-shadow: 0 4px 12px rgba(61, 107, 255, 0.15);
-  border-color: rgba(61, 107, 255, 0.3);
+  background: rgba(212, 167, 106, 0.1);
+  box-shadow: 0 4px 12px rgba(212, 167, 106, 0.15);
+  border-color: rgba(212, 167, 106, 0.4);
   transform: translateY(-1px);
 }
 
@@ -331,13 +420,13 @@ const doLogout = async () => {
   font-size: 15px;
   line-height: 1;
   /* 防止行高把文本挤偏 */
-  box-shadow: 0 4px 12px rgba(61, 107, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(212, 167, 106, 0.3);
   transition: all 0.3s ease;
 }
 
 .login-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(61, 107, 255, 0.4);
+  box-shadow: 0 6px 16px rgba(212, 167, 106, 0.4);
 }
 
 /* 按钮内部的 span 在 Ant 里会影响行高，这里统一为 flex 居中 */
