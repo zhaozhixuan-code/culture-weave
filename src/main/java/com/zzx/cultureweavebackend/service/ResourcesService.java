@@ -13,6 +13,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
+import java.util.List;
+import java.util.Set;
+
 /**
  * @author 28299
  * @description 针对表【resource(非遗资源)】的数据库操作Service
@@ -68,6 +71,12 @@ public interface ResourcesService extends IService<Resources> {
      */
     Wrapper<Resources> getQueryWrapper(ResourcesQueryRequest resourcesQueryRequest);
 
+    /**
+     * 获取热门搜索词列表
+     *
+     * @return
+     */
+    Set<String> listHotSearchText();
 
     /**
      * 获取分页资源信息
@@ -75,9 +84,10 @@ public interface ResourcesService extends IService<Resources> {
      * @param current
      * @param size
      * @param resourcesQueryRequest
+     * @param loginUser
      * @return
      */
-    Page<ResourcesVO> getResourcesVOPage(long current, long size, ResourcesQueryRequest resourcesQueryRequest);
+    Page<ResourcesVO> getResourcesVOPage(long current, long size, ResourcesQueryRequest resourcesQueryRequest, User loginUser);
 
 
     /**
@@ -87,4 +97,11 @@ public interface ResourcesService extends IService<Resources> {
      * @return
      */
     Flux<String> explainResourcesByChat(Long resourcesId, User loginUser);
+
+    /**
+     * 获取用户搜索历史
+     * @param userId 用户id
+     * @return
+     */
+    List<String> getSearchHistoryByUserId(Long userId);
 }

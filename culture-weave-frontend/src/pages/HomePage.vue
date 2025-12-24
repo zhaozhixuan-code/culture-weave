@@ -1783,6 +1783,8 @@ onMounted(async () => {
   flex-direction: column;
   gap: 12px;
   flex: 1;
+  /* 保证卡片内容区域为列布局，便于将 meta 推到底部 */ 
+  min-height: 120px;
 }
 
 .latest-title {
@@ -1803,12 +1805,20 @@ onMounted(async () => {
   font-size: 14px;
   color: #5d4037;
   line-height: 1.7;
+  /* 多行省略：兼容 -webkit-box 并使用标准属性作为补充 */
   display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
   -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  /* 标准属性（兼容性） */
+  display: box;
+  line-clamp: 3;
+  box-orient: vertical;
   overflow: hidden;
+  text-overflow: ellipsis;
   font-family: 'Noto Sans SC', sans-serif;
+  /* 保证简介占用一定高度，防止 meta 随简介高度上移 */
+  min-height: 3.6em; /* 大约 3 行 */
+  max-height: 4.8em;
 }
 
 .latest-meta {
@@ -1820,6 +1830,8 @@ onMounted(async () => {
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid rgba(212, 167, 106, 0.2);
+  /* 将 meta 固定在卡片底部 */
+  margin-top: auto;
 }
 
 .meta-author {

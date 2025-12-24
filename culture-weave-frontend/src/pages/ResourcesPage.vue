@@ -23,6 +23,34 @@
               <button v-if="filters.searchText" class="clear-btn" @click="clearSearch" title="清除搜索">
                 <span class="clear-icon">×</span>
               </button>
+              <!-- 搜索下拉：热搜与历史 -->
+              <div v-if="dropdownVisible" class="search-dropdown" @mousedown.prevent>
+                <div v-if="hotLoading || historyLoading" class="search-loading-inline">
+                  <a-spin size="small" />
+                </div>
+                <div class="search-section history-section">
+                  <div class="section-title">搜索记录</div>
+                  <div class="section-body">
+                    <template v-if="historySearches.length > 0">
+                      <button v-for="t in historySearches" :key="t" class="search-term" @click="applySearchTerm(t)">{{ t }}</button>
+                    </template>
+                    <template v-else-if="!historyLoading">
+                      <div class="empty-term">暂无搜索记录</div>
+                    </template>
+                  </div>
+                </div>
+                <div class="search-section hot-section">
+                  <div class="section-title">热搜</div>
+                  <div class="section-body">
+                    <template v-if="hotSearches.length > 0">
+                      <button v-for="t in hotSearches" :key="t" class="search-term hot" @click="applySearchTerm(t)">{{ t }}</button>
+                    </template>
+                    <template v-else-if="!hotLoading">
+                      <div class="empty-term">暂无热搜</div>
+                    </template>
+                  </div>
+                </div>
+              </div>
             </div>
             <button :class="['search-btn', { searching: loading, 'loading-glimmer': showTopBarLoading }]"
                     :disabled="loading" @click="handleSearch" title="搜索">
@@ -246,7 +274,9 @@ import {
 } from '@ant-design/icons-vue'
 import {
   listResourcesVoByPage,
-  getResourceCategoryList
+  getResourceCategoryList,
+  listHotSearchText,
+  getSearchHistory
 } from '../api/resourcesController'
 import { useLoginUserStore } from '../stores/useLoginUserStore'
 import myAxios from '../request'
@@ -339,6 +369,16 @@ const pagination = reactive({ current: 1, pageSize: 24 })
 
 const showTopBarLoading = computed(() => loading.value)
 
+// 热搜词与历史搜索
+const hotSearches = ref<string[]>([])
+const historySearches = ref<string[]>([])
+const hotLoading = ref(false)
+const historyLoading = ref(false)
+const dropdownVisible = computed(() => {
+  // 始终在输入框聚焦时展示下拉（即使没有数据）
+  return searchFocused.value
+})
+
 // AI问答相关状态
 const showAiChat = ref(false)
 const aiInputMessage = ref('')
@@ -369,6 +409,14 @@ const searchFocused = ref(false)
 
 function onSearchFocus() {
   searchFocused.value = true
+  // 加载热搜和历史（若登录则加载历史）
+  loadHotSearches()
+  if (currentUserId.value) {
+    loadSearchHistory()
+  } else {
+    historySearches.value = []
+    historyLoading.value = false
+  }
 }
 
 function onSearchBlur() {
@@ -376,6 +424,61 @@ function onSearchBlur() {
   setTimeout(() => {
     searchFocused.value = false
   }, 200)
+}
+
+async function loadHotSearches() {
+  hotLoading.value = true
+  try {
+    const res = await listHotSearchText()
+    const raw = (res as any)
+    // 支持多种返回包装形式
+    if (raw?.data?.code === 0 && Array.isArray(raw.data.data)) {
+      hotSearches.value = raw.data.data || []
+    } else if (Array.isArray(raw?.data)) {
+      hotSearches.value = raw.data || []
+    } else if (Array.isArray(raw?.data?.data)) {
+      hotSearches.value = raw.data.data || []
+    } else {
+      hotSearches.value = []
+    }
+  } catch (e) {
+    console.error('加载热搜词失败', e)
+    hotSearches.value = []
+  } finally {
+    hotLoading.value = false
+  }
+}
+
+async function loadSearchHistory() {
+  if (!currentUserId.value) {
+    historySearches.value = []
+    return
+  }
+  historyLoading.value = true
+  try {
+    const res = await getSearchHistory({ UserId: currentUserId.value } as any)
+    const raw = (res as any)
+    if (raw?.data?.code === 0 && Array.isArray(raw.data.data)) {
+      historySearches.value = raw.data.data || []
+    } else if (Array.isArray(raw?.data)) {
+      historySearches.value = raw.data || []
+    } else if (Array.isArray(raw?.data?.data)) {
+      historySearches.value = raw.data.data || []
+    } else {
+      historySearches.value = []
+    }
+  } catch (e) {
+    console.error('加载搜索历史失败', e)
+    historySearches.value = []
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+function applySearchTerm(term: string) {
+  filters.searchText = term
+  // 立即执行搜索
+  fetchList(1)
 }
 
 function normalizeTags(v: unknown): string[] {
@@ -1074,6 +1177,69 @@ onMounted(async () => {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8),
   0 6px 20px rgba(139, 69, 19, 0.08);
   transition: all 0.3s ease;
+}
+
+/* 搜索下拉：热搜与历史 */
+.search-dropdown {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: calc(100% + 8px);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(26, 35, 50, 0.12);
+  border: 1px solid rgba(212, 167, 106, 0.12);
+  padding: 12px;
+  z-index: 50;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.search-loading-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.search-section {
+  margin-bottom: 8px;
+}
+.search-section .section-title {
+  font-size: 13px;
+  color: #8b4513;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.search-section .section-body {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.search-term {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #fffaf4;
+  border: 1px solid rgba(212, 167, 106, 0.18);
+  color: #5d4037;
+  font-size: 13px;
+  cursor: pointer;
+}
+.search-term.hot {
+  background: linear-gradient(135deg, #f6e1c6, #f1d3a8);
+  border-color: rgba(184, 134, 11, 0.18);
+  color: #8b4513;
+  font-weight: 600;
+}
+.search-term:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(139, 69, 19, 0.12);
+}
+
+.empty-term {
+  color: #a1887f;
+  font-size: 13px;
+  padding: 6px 10px;
 }
 
 .search-input-container:focus-within {

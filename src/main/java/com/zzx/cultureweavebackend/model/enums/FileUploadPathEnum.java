@@ -11,7 +11,8 @@ public enum FileUploadPathEnum {
 
 
     RESOURCE("非遗资源", "resource"),
-    PUBLIC("公共创作中心", "public");
+    PUBLIC("公共创作中心", "public"),
+    AVATAR("用户头像", "avatar");
 
     private final String text;
 

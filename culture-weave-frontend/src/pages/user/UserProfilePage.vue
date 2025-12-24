@@ -6,10 +6,25 @@
         <div class="profile-header">
           <div class="avatar-section">
             <div class="avatar-wrapper">
-              <img v-if="userInfo.userAvatar" :src="userInfo.userAvatar" alt="avatar" class="avatar-img" />
+              <img v-if="avatarPreview || userInfo.userAvatar" :src="avatarPreview || userInfo.userAvatar" alt="avatar" class="avatar-img" />
               <div v-else class="avatar-placeholder">
                 {{ abbreviation(userInfo.userName) }}
               </div>
+              <div v-if="isEditing" class="avatar-upload-overlay">
+                <a-upload
+                  v-model:file-list="avatarFileList"
+                  :before-upload="beforeAvatarUpload"
+                  :show-upload-list="false"
+                  accept="image/*"
+                >
+                  <a-button type="primary" shape="circle" size="small" class="avatar-upload-btn">
+                    <EditOutlined />
+                  </a-button>
+                </a-upload>
+              </div>
+            </div>
+            <div v-if="isEditing && avatarFile" class="avatar-upload-hint">
+              <a-button type="link" size="small" class="remove-avatar-btn" @click="removeAvatar">移除头像</a-button>
             </div>
           </div>
           <div class="profile-info">
@@ -21,16 +36,16 @@
               </a-tag>
             </p>
             <div class="profile-actions">
-              <a-button v-if="!isEditing" type="primary" @click="startEdit">
+              <a-button v-if="!isEditing" type="primary" class="edit-btn" @click="startEdit">
                 <EditOutlined />
                 编辑资料
               </a-button>
               <template v-else>
-                <a-button type="primary" @click="saveProfile" :loading="saving">
+                <a-button type="primary" class="save-btn" @click="saveProfile" :loading="saving">
                   <CheckOutlined />
                   保存
                 </a-button>
-                <a-button @click="cancelEdit" style="margin-left: 8px">
+                <a-button class="cancel-btn" @click="cancelEdit">
                   取消
                 </a-button>
               </template>
@@ -192,6 +207,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import type { UploadFile, UploadProps } from 'ant-design-vue'
 import {
   EditOutlined,
   CheckOutlined,
@@ -199,20 +215,20 @@ import {
   HighlightOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
-import { getUserById, editUser, updateUser } from '../../api/userController'
+import { getUserVoById, editUser, updateUser } from '../../api/userController'
 import { listResourcesVoByPage } from '../../api/resourcesController'
 import { listResourcesVoByPage1 } from '../../api/postController'
 import { useLoginUserStore } from '../../stores/useLoginUserStore'
 import PostDetailModal from '../../components/PostDetailModal.vue'
 
-type User = API.User
+type UserVO = API.UserVO
 type ResourcesVO = API.ResourcesVO
 type PostVO = API.PostVO
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
 
-const userInfo = ref<User>({
+const userInfo = ref<UserVO>({
   userName: '',
   userAccount: '',
   userAvatar: '',
@@ -228,6 +244,11 @@ const editForm = reactive({
   userName: '',
   userProfile: ''
 })
+
+// 头像上传相关
+const avatarFile = ref<File | null>(null)
+const avatarPreview = ref<string | null>(null)
+const avatarFileList = ref<UploadFile[]>([])
 
 const resourcesLoading = ref(false)
 const myResources = ref<ResourcesVO[]>([])
@@ -279,7 +300,7 @@ async function fetchUserInfo() {
   }
 
   try {
-    const res = await getUserById({ id: currentUserId.value })
+    const res = await getUserVoById({ id: currentUserId.value })
     if (res.data.code === 0 && res.data.data) {
       userInfo.value = res.data.data
       editForm.userName = userInfo.value.userName || ''
@@ -297,12 +318,52 @@ function startEdit() {
   isEditing.value = true
   editForm.userName = userInfo.value.userName || ''
   editForm.userProfile = userInfo.value.userProfile || ''
+  // 重置头像上传状态
+  avatarFile.value = null
+  avatarPreview.value = null
+  avatarFileList.value = []
 }
 
 function cancelEdit() {
   isEditing.value = false
   editForm.userName = userInfo.value.userName || ''
   editForm.userProfile = userInfo.value.userProfile || ''
+  // 重置头像上传状态
+  avatarFile.value = null
+  avatarPreview.value = null
+  avatarFileList.value = []
+}
+
+const beforeAvatarUpload: UploadProps['beforeUpload'] = (file) => {
+  const isImage = file.type.startsWith('image/')
+  if (!isImage) {
+    message.error('只能上传图片文件！')
+    return false
+  }
+  const isLt5M = file.size / 1024 / 1024 < 5
+  if (!isLt5M) {
+    message.error('头像图片大小不能超过 5MB！')
+    return false
+  }
+
+  avatarFile.value = file
+  const uploadFile = file as UploadFile
+  avatarFileList.value = [uploadFile]
+
+  // 创建预览
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    avatarPreview.value = e.target?.result as string
+  }
+  reader.readAsDataURL(file)
+
+  return false
+}
+
+function removeAvatar() {
+  avatarFile.value = null
+  avatarPreview.value = null
+  avatarFileList.value = []
 }
 
 async function saveProfile() {
@@ -310,20 +371,30 @@ async function saveProfile() {
 
   saving.value = true
   try {
-    const res = await editUser({
+    const userEditRequest: API.UserEditRequest = {
       id: currentUserId.value,
       userName: editForm.userName,
-      userProfile: editForm.userProfile,
-      userAvatar: userInfo.value.userAvatar
-    })
+      userProfile: editForm.userProfile
+    }
 
-    if (res.data.code === 0) {
+    // 如果有新上传的头像文件，则上传文件；否则只更新其他信息
+    const res = await editUser(
+      { userEditRequest },
+      avatarFile.value || undefined
+    )
+    const responseData = (res as any)?.data as API.BaseResponseBoolean
+
+    if (responseData?.code === 0) {
       message.success('保存成功')
       await fetchUserInfo()
       await loginUserStore.fetchLoginUser()
       isEditing.value = false
+      // 清空上传状态
+      avatarFile.value = null
+      avatarPreview.value = null
+      avatarFileList.value = []
     } else {
-      message.error('保存失败：' + res.data.message)
+      message.error('保存失败：' + (responseData?.message || '未知错误'))
     }
   } catch (error) {
     console.error('保存失败', error)
@@ -508,6 +579,63 @@ onMounted(async () => {
 
 .avatar-wrapper {
   position: relative;
+  display: inline-block;
+}
+
+.avatar-upload-overlay {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: rgba(139, 69, 19, 0.8);
+  border-radius: 50%;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(139, 69, 19, 0.3);
+}
+
+.avatar-upload-overlay:hover {
+  background: rgba(139, 69, 19, 0.95);
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(139, 69, 19, 0.4);
+}
+
+.avatar-upload-overlay :deep(.avatar-upload-btn) {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-upload-overlay :deep(.avatar-upload-btn:hover) {
+  background: rgba(255, 255, 255, 0.1);
+  transform: rotate(15deg);
+}
+
+.avatar-upload-hint {
+  text-align: center;
+  margin-top: 8px;
+}
+
+.avatar-upload-hint :deep(.remove-avatar-btn) {
+  color: #d32f2f;
+  font-size: 13px;
+  padding: 0;
+  height: auto;
+  transition: all 0.3s ease;
+}
+
+.avatar-upload-hint :deep(.remove-avatar-btn:hover) {
+  color: #b71c1c;
+  text-decoration: underline;
 }
 
 .avatar-img {
@@ -555,6 +683,90 @@ onMounted(async () => {
 
 .profile-actions {
   margin-top: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* 编辑按钮样式 */
+.profile-actions :deep(.edit-btn),
+.profile-actions :deep(.save-btn) {
+  height: 36px;
+  padding: 0 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  font-family: 'Noto Sans SC', sans-serif;
+  letter-spacing: 0.3px;
+  background: linear-gradient(135deg, #a0522d, #8b4513);
+  border: 2px solid #8b4513;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(139, 69, 19, 0.25);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-actions :deep(.edit-btn::before),
+.profile-actions :deep(.save-btn::before) {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s;
+}
+
+.profile-actions :deep(.edit-btn:hover),
+.profile-actions :deep(.save-btn:hover) {
+  background: linear-gradient(135deg, #8b4513, #654321);
+  border-color: #654321;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(139, 69, 19, 0.35);
+}
+
+.profile-actions :deep(.edit-btn:hover::before),
+.profile-actions :deep(.save-btn:hover::before) {
+  left: 100%;
+}
+
+.profile-actions :deep(.edit-btn:active),
+.profile-actions :deep(.save-btn:active) {
+  transform: translateY(0);
+  background: linear-gradient(135deg, #654321, #4a2f1a);
+  box-shadow: 0 4px 12px rgba(139, 69, 19, 0.25);
+}
+
+/* 取消按钮样式 */
+.profile-actions :deep(.cancel-btn) {
+  height: 36px;
+  padding: 0 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  font-family: 'Noto Sans SC', sans-serif;
+  letter-spacing: 0.3px;
+  background: #fff;
+  border: 2px solid rgba(212, 167, 106, 0.4);
+  color: #8b4513;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(212, 167, 106, 0.15);
+}
+
+.profile-actions :deep(.cancel-btn:hover) {
+  background: rgba(212, 167, 106, 0.1);
+  border-color: rgba(212, 167, 106, 0.6);
+  color: #654321;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(212, 167, 106, 0.25);
+}
+
+.profile-actions :deep(.cancel-btn:active) {
+  transform: translateY(0);
+  background: rgba(212, 167, 106, 0.15);
+  box-shadow: 0 2px 6px rgba(212, 167, 106, 0.2);
 }
 
 .profile-content {

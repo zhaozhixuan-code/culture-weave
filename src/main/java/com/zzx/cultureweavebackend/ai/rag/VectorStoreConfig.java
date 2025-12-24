@@ -28,9 +28,9 @@ public class VectorStoreConfig {
         // 从数据库获取documents文件
         List<Document> documents = mysqlDocumentReader.loadMySqlDocuments();
         // 自动补充关键元信息
-        List<Document> enrichDocuments = keywordEnricher.enrichDocuments(documents);
+//        List<Document> enrichDocuments = keywordEnricher.enrichDocuments(documents);
         // 添加文件到向量存储
-        simpleVectorStore.add(enrichDocuments);
+//        simpleVectorStore.add(enrichDocuments);
         return simpleVectorStore;
     }
 }

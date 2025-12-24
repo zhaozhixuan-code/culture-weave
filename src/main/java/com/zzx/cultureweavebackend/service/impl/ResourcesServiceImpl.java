@@ -10,6 +10,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zzx.cultureweavebackend.ai.ResourcesChatApp;
+import com.zzx.cultureweavebackend.constants.RedisConstant;
 import com.zzx.cultureweavebackend.exception.BusinessException;
 import com.zzx.cultureweavebackend.exception.ErrorCode;
 import com.zzx.cultureweavebackend.exception.ThrowUtils;
@@ -24,10 +25,12 @@ import com.zzx.cultureweavebackend.model.vo.UploadPictureResult;
 import com.zzx.cultureweavebackend.service.ResourcesService;
 import com.zzx.cultureweavebackend.mapper.ResourcesMapper;
 import com.zzx.cultureweavebackend.service.UserService;
+import com.zzx.cultureweavebackend.utils.SearchRedisUtil;
 import com.zzx.cultureweavebackend.utils.upload.FilePictureUpload;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
@@ -36,6 +39,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -57,6 +61,12 @@ public class ResourcesServiceImpl extends ServiceImpl<ResourcesMapper, Resources
     @Resource
     @Lazy
     private ResourcesChatApp resourcesChatApp;
+
+    @Resource
+    private SearchRedisUtil searchRedisUtil;
+
+    @Resource
+    private RedisTemplate redisTemplate;
 
 
     /**
@@ -182,25 +192,68 @@ public class ResourcesServiceImpl extends ServiceImpl<ResourcesMapper, Resources
         return resourcesVO;
     }
 
+
+    /**
+     * 获取热门搜索词列表
+     *
+     * @return
+     */
+    @Override
+    public Set<String> listHotSearchText() {
+        return searchRedisUtil.listHotSearch();
+    }
+
+    /**
+     * 获取用户搜索记录
+     *
+     * @param userId 用户id
+     * @return
+     */
+    @Override
+    public List<String> getSearchHistoryByUserId(Long userId) {
+        return searchRedisUtil.getSearchHistory(userId);
+    }
+
     /**
      * 获取分页资源信息
      *
      * @param current
      * @param size
      * @param resourcesQueryRequest
+     * @param loginUser
      * @return
      */
     @Override
-    public Page<ResourcesVO> getResourcesVOPage(long current, long size, ResourcesQueryRequest resourcesQueryRequest) {
+    public Page<ResourcesVO> getResourcesVOPage(long current, long size, ResourcesQueryRequest resourcesQueryRequest, User loginUser) {
+        String searchText = resourcesQueryRequest.getSearchText();
+        if (searchText != null && !searchText.isEmpty()) {
+            // 添加缓存热搜词
+            searchRedisUtil.addHotSearch(searchText);
+            if (loginUser != null) {
+                // 添加用户搜索记录
+                searchRedisUtil.addRecentSearch(loginUser.getId(), searchText);
+            }
+        }
+        // 如果该搜索词是热搜词，可获取数据直接返回
+        Set<String> listHotSearch = searchRedisUtil.listHotSearch();
+        if (listHotSearch.contains( resourcesQueryRequest.getSearchText())) {
+            Page<ResourcesVO> cachedPage = (Page<ResourcesVO>) redisTemplate.opsForValue().get(RedisConstant.RESOURCES_SELECT + searchText);
+            if (cachedPage != null) {
+                return cachedPage;
+            }
+        }
         // 获取分页资源信息
         // 根据创建时间排序查询
         resourcesQueryRequest.setSortField("createTime");
         Page<Resources> resourcesPage = this.page(new Page<>(current, size), this.getQueryWrapper(resourcesQueryRequest));
         List<Resources> resourcesList = resourcesPage.getRecords();
         Page<ResourcesVO> resourcesVOPage = new Page<>(resourcesPage.getCurrent(), resourcesPage.getSize(), resourcesPage.getTotal());
+
+        // 如果为空则直接返回
         if (CollUtil.isEmpty(resourcesList)) {
             return resourcesVOPage;
         }
+        // 构造返回结果
         List<ResourcesVO> resourcesVOList = resourcesList.stream().map(resources -> {
             ResourcesVO resourcesVO = new ResourcesVO();
             BeanUtil.copyProperties(resources, resourcesVO);
@@ -221,6 +274,13 @@ public class ResourcesServiceImpl extends ServiceImpl<ResourcesMapper, Resources
             }
         });
         resourcesVOPage.setRecords(resourcesVOList);
+
+        // 缓存热搜数据(30分钟)
+        if (listHotSearch.contains(searchText)) {
+            if (searchText != null) {
+                redisTemplate.opsForValue().set(RedisConstant.RESOURCES_SELECT + searchText, resourcesVOPage, 30, TimeUnit.MINUTES);
+            }
+        }
 
         return resourcesVOPage;
     }

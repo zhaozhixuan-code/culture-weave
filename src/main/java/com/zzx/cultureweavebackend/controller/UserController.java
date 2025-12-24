@@ -19,7 +19,9 @@ import com.zzx.cultureweavebackend.model.vo.UserVO;
 import com.zzx.cultureweavebackend.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -138,24 +140,20 @@ public class UserController {
     /**
      * 编辑用户信息（用户）
      *
-     * @param userEditRequest
+     * @param userEditRequest 编辑参数
+     * @param file            头像（可选）
      * @param request
      * @return
      */
-    @PostMapping("/edit")
-    public BaseResponse<Boolean> editUser(@RequestBody UserEditRequest userEditRequest, HttpServletRequest request) {
+    @PostMapping(value = "/edit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public BaseResponse<Boolean> editUser(@RequestPart("userEditRequest") UserEditRequest userEditRequest,
+                                          @RequestPart(value = "file", required = false) MultipartFile file,
+                                          HttpServletRequest request) {
         ThrowUtils.throwIf(userEditRequest == null, ErrorCode.PARAMS_ERROR);
         User loginUser = userService.getLoginUser(request);
         ThrowUtils.throwIf(ObjUtil.isNull(loginUser), ErrorCode.NOT_LOGIN_ERROR);
         ThrowUtils.throwIf(!loginUser.getId().equals(userEditRequest.getId()), ErrorCode.NO_AUTH_ERROR);
-        User user = new User();
-        BeanUtil.copyProperties(userEditRequest, user);
-        String userPassword = user.getUserPassword();
-        if (StrUtil.isNotBlank(userPassword)) {
-            String encryptionPassword = userService.getEncryptionPassword(userPassword);
-            user.setUserPassword(encryptionPassword);
-        }
-        boolean result = userService.updateById(user);
+        boolean result = userService.editUser(userEditRequest, file, loginUser);
         return ResultUtils.success(result);
     }
 

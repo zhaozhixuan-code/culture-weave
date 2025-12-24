@@ -2,6 +2,7 @@ package com.zzx.cultureweavebackend.service;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.zzx.cultureweavebackend.model.dto.user.UserAddRequest;
+import com.zzx.cultureweavebackend.model.dto.user.UserEditRequest;
 import com.zzx.cultureweavebackend.model.dto.user.UserQueryRequest;
 import com.zzx.cultureweavebackend.model.dto.user.UserRegisterRequest;
 import com.zzx.cultureweavebackend.model.po.User;
@@ -9,6 +10,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.zzx.cultureweavebackend.model.vo.LoginUserVO;
 import com.zzx.cultureweavebackend.model.vo.UserVO;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -85,4 +87,14 @@ public interface UserService extends IService<User> {
     List<UserVO> getUserVOList(List<User> userList);
 
     boolean isAdmin(User user);
+
+    /**
+     * 编辑用户信息(用户)
+     *
+     * @param userEditRequest
+     * @param file
+     * @param loginUser
+     * @return
+     */
+    boolean editUser(UserEditRequest userEditRequest, MultipartFile file, User loginUser);
 }

@@ -13,19 +13,25 @@ import com.zzx.cultureweavebackend.exception.BusinessException;
 import com.zzx.cultureweavebackend.exception.ErrorCode;
 import com.zzx.cultureweavebackend.exception.ThrowUtils;
 import com.zzx.cultureweavebackend.model.dto.user.UserAddRequest;
+import com.zzx.cultureweavebackend.model.dto.user.UserEditRequest;
 import com.zzx.cultureweavebackend.model.dto.user.UserQueryRequest;
+import com.zzx.cultureweavebackend.model.enums.FileUploadPathEnum;
 import com.zzx.cultureweavebackend.model.enums.UserRoleEnum;
 import com.zzx.cultureweavebackend.model.po.User;
 import com.zzx.cultureweavebackend.model.vo.LoginUserVO;
+import com.zzx.cultureweavebackend.model.vo.UploadPictureResult;
 import com.zzx.cultureweavebackend.model.vo.UserVO;
 import com.zzx.cultureweavebackend.service.UserService;
 import com.zzx.cultureweavebackend.mapper.UserMapper;
 import com.zzx.cultureweavebackend.utils.BaseContext;
+import com.zzx.cultureweavebackend.utils.upload.FilePictureUpload;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +49,10 @@ import static com.zzx.cultureweavebackend.constants.UserConstants.USER_LOGIN_STA
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         implements UserService {
+
+
+    @Resource
+    private FilePictureUpload filePictureUpload;
 
 
     /**
@@ -166,15 +176,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 先判断是否已登录
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         User currentUser = (User) userObj;
-        if (currentUser == null || currentUser.getId() == null) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
-        }
-        // 从数据库查询（追求性能的话可以注释，直接返回上述结果）
-        long userId = currentUser.getId();
-        currentUser = this.getById(userId);
-        if (currentUser == null) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
-        }
+//        if (currentUser == null || currentUser.getId() == null) {
+//            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+//        }
+//        // 从数据库查询（追求性能的话可以注释，直接返回上述结果）
+//        long userId = currentUser.getId();
+//        currentUser = this.getById(userId);
+//        if (currentUser == null) {
+//            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+//        }
         return currentUser;
     }
 
@@ -210,6 +220,36 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             throw new BusinessException(ErrorCode.OPERATION_ERROR);
         }
         return user.getId();
+    }
+
+
+    /**
+     * 编辑用户
+     *
+     * @param userEditRequest 编辑用户请求参数
+     * @param file            文件
+     * @param loginUser       登录用户
+     * @return
+     */
+    @Override
+    public boolean editUser(UserEditRequest userEditRequest, MultipartFile file, User loginUser) {
+        User user = new User();
+        BeanUtil.copyProperties(userEditRequest, user);
+        String userPassword = user.getUserPassword();
+        if (StrUtil.isNotBlank(userPassword)) {
+            // 密码加密
+            String encryptionPassword = this.getEncryptionPassword(userPassword);
+            user.setUserPassword(encryptionPassword);
+        }
+        // 判断是否要更新头像
+        if (file != null) {
+            // 获取头像上传路径
+            String Path = String.format(FileUploadPathEnum.AVATAR.getValue());
+            UploadPictureResult uploadPictureResult = filePictureUpload.uploadPicture(file, Path);
+            user.setUserAvatar(uploadPictureResult.getUrl());
+        }
+        boolean result = this.updateById(user);
+        return result;
     }
 
     /**

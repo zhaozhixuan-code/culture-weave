@@ -27,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 非遗资源相关接口
@@ -127,12 +128,14 @@ public class ResourcesController {
      * @return 照片列表
      */
     @PostMapping("/list/page/vo")
-    public BaseResponse<Page<ResourcesVO>> listResourcesVOByPage(@RequestBody ResourcesQueryRequest resourcesQueryRequest) {
+    public BaseResponse<Page<ResourcesVO>> listResourcesVOByPage(@RequestBody ResourcesQueryRequest resourcesQueryRequest,
+                                                                 HttpServletRequest request) {
         ThrowUtils.throwIf(resourcesQueryRequest == null, ErrorCode.PARAMS_ERROR);
         long current = resourcesQueryRequest.getCurrent();
         long size = resourcesQueryRequest.getPageSize();
         // 分页查询
-        Page<ResourcesVO> resourcesVOList = resourcesService.getResourcesVOPage(current, size, resourcesQueryRequest);
+        User loginUser = userService.getLoginUser(request);
+        Page<ResourcesVO> resourcesVOList = resourcesService.getResourcesVOPage(current, size, resourcesQueryRequest, loginUser);
         return ResultUtils.success(resourcesVOList);
     }
 
@@ -152,5 +155,28 @@ public class ResourcesController {
         resourcesCategory.setCategoryList(categoryList);
         resourcesCategory.setRegionList(regionList);
         return ResultUtils.success(resourcesCategory);
+    }
+
+    /**
+     * 获取最热搜索词
+     *
+     * @return
+     */
+    @GetMapping("/list/hot/searchtext")
+    public BaseResponse<Set<String>> listHotSearchText() {
+        Set<String> hotSearchTextList = resourcesService.listHotSearchText();
+        return ResultUtils.success(hotSearchTextList);
+    }
+
+    /**
+     * 获取当前用户的搜索历史记录
+     *
+     * @param UserId
+     * @return
+     */
+    @GetMapping("/list/search/history")
+    public BaseResponse<List<String>> getSearchHistory(Long UserId) {
+        List<String> searchHistory = resourcesService.getSearchHistoryByUserId(UserId);
+        return ResultUtils.success(searchHistory);
     }
 }

@@ -11,6 +11,12 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponseListString = {
+    code?: number
+    data?: string[]
+    message?: string
+  }
+
   type BaseResponseLoginUserVO = {
     code?: number
     data?: LoginUserVO
@@ -77,6 +83,12 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponseSetString = {
+    code?: number
+    data?: string[]
+    message?: string
+  }
+
   type BaseResponseUser = {
     code?: number
     data?: User
@@ -130,6 +142,10 @@ declare namespace API {
 
   type getResourcesVOByIdParams = {
     id: number
+  }
+
+  type getSearchHistoryParams = {
+    UserId: number
   }
 
   type getUserByIdParams = {
@@ -398,7 +414,6 @@ declare namespace API {
   type UserEditRequest = {
     id?: number
     userName?: string
-    userAvatar?: string
     userProfile?: string
     userPassword?: string
   }

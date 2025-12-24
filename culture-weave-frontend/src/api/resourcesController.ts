@@ -75,6 +75,14 @@ export async function getResourcesVoById(
   })
 }
 
+/** 此处后端没有提供注释 GET /resource/list/hot/searchtext */
+export async function listHotSearchText(options?: { [key: string]: any }) {
+  return request<API.BaseResponseSetString>('/resource/list/hot/searchtext', {
+    method: 'GET',
+    ...(options || {}),
+  })
+}
+
 /** 此处后端没有提供注释 POST /resource/list/page */
 export async function listResourcesByPage(
   body: API.ResourcesQueryRequest,
@@ -101,6 +109,21 @@ export async function listResourcesVoByPage(
       'Content-Type': 'application/json',
     },
     data: body,
+    ...(options || {}),
+  })
+}
+
+/** 此处后端没有提供注释 GET /resource/list/search/history */
+export async function getSearchHistory(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.getSearchHistoryParams,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseListString>('/resource/list/search/history', {
+    method: 'GET',
+    params: {
+      ...params,
+    },
     ...(options || {}),
   })
 }
